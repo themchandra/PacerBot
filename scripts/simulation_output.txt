@@ -1,0 +1,603 @@
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=0 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=1 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=2 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=3 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=4 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=5 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=6 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=7 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=8 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=9 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=10 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=11 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=12 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=13 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=14 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=15 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=16 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=17 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=18 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=19 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=20 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=21 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=22 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=23 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=24 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=25 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=26 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=27 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=28 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=29 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=30 mode=1 duty=0.25 speed=0 m/s
+MOCK: Simulated speed = 0.005 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=31 mode=1 duty=0.25 speed=0.005 m/s
+MOCK: Simulated speed = 0.01 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=32 mode=1 duty=0.25 speed=0.01 m/s
+MOCK: Simulated speed = 0.015 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=33 mode=1 duty=0.25 speed=0.015 m/s
+MOCK: Simulated speed = 0.02 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=34 mode=1 duty=0.25 speed=0.02 m/s
+MOCK: Simulated speed = 0.025 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=35 mode=1 duty=0.25 speed=0.025 m/s
+MOCK: Simulated speed = 0.03 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=36 mode=1 duty=0.25 speed=0.03 m/s
+MOCK: Simulated speed = 0.035 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=37 mode=1 duty=0.25 speed=0.035 m/s
+MOCK: Simulated speed = 0.04 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=38 mode=1 duty=0.25 speed=0.04 m/s
+MOCK: Simulated speed = 0.045 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=39 mode=1 duty=0.25 speed=0.045 m/s
+MOCK: Simulated speed = 0.05 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=40 mode=1 duty=0.25 speed=0.05 m/s
+MOCK: Simulated speed = 0.055 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=41 mode=1 duty=0.25 speed=0.055 m/s
+MOCK: Simulated speed = 0.06 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=42 mode=1 duty=0.25 speed=0.06 m/s
+MOCK: Simulated speed = 0.065 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=43 mode=1 duty=0.25 speed=0.065 m/s
+MOCK: Simulated speed = 0.07 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=44 mode=1 duty=0.25 speed=0.07 m/s
+MOCK: Simulated speed = 0.075 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=45 mode=1 duty=0.25 speed=0.075 m/s
+MOCK: Simulated speed = 0.08 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=46 mode=1 duty=0.25 speed=0.08 m/s
+MOCK: Simulated speed = 0.085 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=47 mode=1 duty=0.25 speed=0.085 m/s
+MOCK: Simulated speed = 0.09 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=48 mode=1 duty=0.25 speed=0.09 m/s
+MOCK: Simulated speed = 0.095 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=49 mode=1 duty=0.25 speed=0.095 m/s
+MOCK: Simulated speed = 0.1 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=50 mode=1 duty=0.25 speed=0.1 m/s
+MOCK: Simulated speed = 0.105 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=51 mode=1 duty=0.25 speed=0.105 m/s
+MOCK: Simulated speed = 0.11 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=52 mode=1 duty=0.25 speed=0.11 m/s
+MOCK: Simulated speed = 0.115 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=53 mode=1 duty=0.25 speed=0.115 m/s
+MOCK: Simulated speed = 0.12 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=54 mode=1 duty=0.25 speed=0.12 m/s
+MOCK: Simulated speed = 0.125 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=55 mode=1 duty=0.25 speed=0.125 m/s
+MOCK: Simulated speed = 0.13 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=56 mode=1 duty=0.25 speed=0.13 m/s
+MOCK: Simulated speed = 0.135 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=57 mode=1 duty=0.25 speed=0.135 m/s
+MOCK: Simulated speed = 0.14 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=58 mode=1 duty=0.25 speed=0.14 m/s
+MOCK: Simulated speed = 0.145 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=59 mode=1 duty=0.25 speed=0.145 m/s
+MOCK: Simulated speed = 0.15 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=60 mode=1 duty=0.25 speed=0.15 m/s
+MOCK: Simulated speed = 0.155 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=61 mode=1 duty=0.25 speed=0.155 m/s
+MOCK: Simulated speed = 0.16 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=62 mode=1 duty=0.25 speed=0.16 m/s
+MOCK: Simulated speed = 0.165 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=63 mode=1 duty=0.25 speed=0.165 m/s
+MOCK: Simulated speed = 0.17 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=64 mode=1 duty=0.25 speed=0.17 m/s
+MOCK: Simulated speed = 0.175 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=65 mode=1 duty=0.25 speed=0.175 m/s
+MOCK: Simulated speed = 0.18 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=66 mode=1 duty=0.25 speed=0.18 m/s
+MOCK: Simulated speed = 0.185 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=67 mode=1 duty=0.25 speed=0.185 m/s
+MOCK: Simulated speed = 0.19 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=68 mode=1 duty=0.25 speed=0.19 m/s
+MOCK: Simulated speed = 0.195 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=69 mode=1 duty=0.25 speed=0.195 m/s
+MOCK: Simulated speed = 0.2 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=70 mode=1 duty=0.25 speed=0.2 m/s
+MOCK: Simulated speed = 0.205 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=71 mode=1 duty=0.25 speed=0.205 m/s
+MOCK: Simulated speed = 0.21 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=72 mode=1 duty=0.25 speed=0.21 m/s
+MOCK: Simulated speed = 0.215 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=73 mode=1 duty=0.25 speed=0.215 m/s
+MOCK: Simulated speed = 0.22 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=74 mode=1 duty=0.25 speed=0.22 m/s
+MOCK: Simulated speed = 0.225 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=75 mode=1 duty=0.25 speed=0.225 m/s
+MOCK: Simulated speed = 0.23 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=76 mode=1 duty=0.25 speed=0.23 m/s
+MOCK: Simulated speed = 0.235 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=77 mode=1 duty=0.25 speed=0.235 m/s
+MOCK: Simulated speed = 0.24 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=78 mode=1 duty=0.25 speed=0.24 m/s
+MOCK: Simulated speed = 0.245 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=79 mode=1 duty=0.25 speed=0.245 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=80 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=81 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=82 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=83 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=84 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=85 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=86 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=87 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=88 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=89 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=90 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=91 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=92 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=93 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=94 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=95 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=96 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=97 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=98 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Simulated speed = 0.25 m/s
+MOCK: Setting motors to left=0.25, right=0.25
+i=99 mode=1 duty=0.25 speed=0.25 m/s
+MOCK: Setting motors to left=0, right=0
+EMERGENCY STOP ACTIVATED
+MOCK: Simulated speed = 0.244 m/s
+MOCK: Setting motors to left=0, right=0
+i=100 mode=2 duty=0 speed=0.244 m/s
+MOCK: Simulated speed = 0.238 m/s
+MOCK: Setting motors to left=0, right=0
+i=101 mode=2 duty=0 speed=0.238 m/s
+MOCK: Simulated speed = 0.232 m/s
+MOCK: Setting motors to left=0, right=0
+i=102 mode=2 duty=0 speed=0.232 m/s
+MOCK: Simulated speed = 0.226 m/s
+MOCK: Setting motors to left=0, right=0
+i=103 mode=2 duty=0 speed=0.226 m/s
+MOCK: Simulated speed = 0.22 m/s
+MOCK: Setting motors to left=0, right=0
+i=104 mode=2 duty=0 speed=0.22 m/s
+MOCK: Simulated speed = 0.214 m/s
+MOCK: Setting motors to left=0, right=0
+i=105 mode=2 duty=0 speed=0.214 m/s
+MOCK: Simulated speed = 0.208 m/s
+MOCK: Setting motors to left=0, right=0
+i=106 mode=2 duty=0 speed=0.208 m/s
+MOCK: Simulated speed = 0.202 m/s
+MOCK: Setting motors to left=0, right=0
+i=107 mode=2 duty=0 speed=0.202 m/s
+MOCK: Simulated speed = 0.196 m/s
+MOCK: Setting motors to left=0, right=0
+i=108 mode=2 duty=0 speed=0.196 m/s
+MOCK: Simulated speed = 0.19 m/s
+MOCK: Setting motors to left=0, right=0
+i=109 mode=2 duty=0 speed=0.19 m/s
+MOCK: Simulated speed = 0.184 m/s
+MOCK: Setting motors to left=0, right=0
+i=110 mode=2 duty=0 speed=0.184 m/s
+MOCK: Simulated speed = 0.178 m/s
+MOCK: Setting motors to left=0, right=0
+i=111 mode=2 duty=0 speed=0.178 m/s
+MOCK: Simulated speed = 0.172 m/s
+MOCK: Setting motors to left=0, right=0
+i=112 mode=2 duty=0 speed=0.172 m/s
+MOCK: Simulated speed = 0.166 m/s
+MOCK: Setting motors to left=0, right=0
+i=113 mode=2 duty=0 speed=0.166 m/s
+MOCK: Simulated speed = 0.16 m/s
+MOCK: Setting motors to left=0, right=0
+i=114 mode=2 duty=0 speed=0.16 m/s
+MOCK: Simulated speed = 0.154 m/s
+MOCK: Setting motors to left=0, right=0
+i=115 mode=2 duty=0 speed=0.154 m/s
+MOCK: Simulated speed = 0.148 m/s
+MOCK: Setting motors to left=0, right=0
+i=116 mode=2 duty=0 speed=0.148 m/s
+MOCK: Simulated speed = 0.142 m/s
+MOCK: Setting motors to left=0, right=0
+i=117 mode=2 duty=0 speed=0.142 m/s
+MOCK: Simulated speed = 0.136 m/s
+MOCK: Setting motors to left=0, right=0
+i=118 mode=2 duty=0 speed=0.136 m/s
+MOCK: Simulated speed = 0.13 m/s
+MOCK: Setting motors to left=0, right=0
+i=119 mode=2 duty=0 speed=0.13 m/s
+MOCK: Simulated speed = 0.124 m/s
+MOCK: Setting motors to left=0, right=0
+i=120 mode=2 duty=0 speed=0.124 m/s
+MOCK: Simulated speed = 0.118 m/s
+MOCK: Setting motors to left=0, right=0
+i=121 mode=2 duty=0 speed=0.118 m/s
+MOCK: Simulated speed = 0.112 m/s
+MOCK: Setting motors to left=0, right=0
+i=122 mode=2 duty=0 speed=0.112 m/s
+MOCK: Simulated speed = 0.106 m/s
+MOCK: Setting motors to left=0, right=0
+i=123 mode=2 duty=0 speed=0.106 m/s
+MOCK: Simulated speed = 0.1 m/s
+MOCK: Setting motors to left=0, right=0
+i=124 mode=2 duty=0 speed=0.1 m/s
+MOCK: Simulated speed = 0.094 m/s
+MOCK: Setting motors to left=0, right=0
+i=125 mode=2 duty=0 speed=0.094 m/s
+MOCK: Simulated speed = 0.088 m/s
+MOCK: Setting motors to left=0, right=0
+i=126 mode=2 duty=0 speed=0.088 m/s
+MOCK: Simulated speed = 0.082 m/s
+MOCK: Setting motors to left=0, right=0
+i=127 mode=2 duty=0 speed=0.082 m/s
+MOCK: Simulated speed = 0.076 m/s
+MOCK: Setting motors to left=0, right=0
+i=128 mode=2 duty=0 speed=0.076 m/s
+MOCK: Simulated speed = 0.07 m/s
+MOCK: Setting motors to left=0, right=0
+i=129 mode=2 duty=0 speed=0.07 m/s
+MOCK: Simulated speed = 0.064 m/s
+MOCK: Setting motors to left=0, right=0
+i=130 mode=2 duty=0 speed=0.064 m/s
+MOCK: Simulated speed = 0.058 m/s
+MOCK: Setting motors to left=0, right=0
+i=131 mode=2 duty=0 speed=0.058 m/s
+MOCK: Simulated speed = 0.052 m/s
+MOCK: Setting motors to left=0, right=0
+i=132 mode=2 duty=0 speed=0.052 m/s
+MOCK: Simulated speed = 0.046 m/s
+MOCK: Setting motors to left=0, right=0
+i=133 mode=2 duty=0 speed=0.046 m/s
+MOCK: Simulated speed = 0.04 m/s
+MOCK: Setting motors to left=0, right=0
+i=134 mode=2 duty=0 speed=0.04 m/s
+MOCK: Simulated speed = 0.034 m/s
+MOCK: Setting motors to left=0, right=0
+i=135 mode=2 duty=0 speed=0.034 m/s
+MOCK: Simulated speed = 0.028 m/s
+MOCK: Setting motors to left=0, right=0
+i=136 mode=2 duty=0 speed=0.028 m/s
+MOCK: Simulated speed = 0.022 m/s
+MOCK: Setting motors to left=0, right=0
+i=137 mode=2 duty=0 speed=0.022 m/s
+MOCK: Simulated speed = 0.016 m/s
+MOCK: Setting motors to left=0, right=0
+i=138 mode=2 duty=0 speed=0.016 m/s
+MOCK: Simulated speed = 0.01 m/s
+MOCK: Setting motors to left=0, right=0
+i=139 mode=2 duty=0 speed=0.01 m/s
+MOCK: Simulated speed = 0.00400002 m/s
+MOCK: Setting motors to left=0, right=0
+i=140 mode=2 duty=0 speed=0.00400002 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=141 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=142 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=143 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=144 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=145 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=146 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=147 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=148 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=149 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=150 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=151 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=152 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=153 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=154 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=155 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=156 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=157 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=158 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=159 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=160 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=161 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=162 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=163 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=164 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=165 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=166 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=167 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=168 mode=2 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=169 mode=2 duty=0 speed=0 m/s
+EMERGENCY STOP RESET
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=170 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=171 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=172 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=173 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=174 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=175 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=176 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=177 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=178 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=179 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=180 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=181 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=182 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=183 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=184 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=185 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=186 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=187 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=188 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=189 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=190 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=191 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=192 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=193 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=194 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=195 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=196 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=197 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=198 mode=0 duty=0 speed=0 m/s
+MOCK: Simulated speed = 0 m/s
+MOCK: Setting motors to left=0, right=0
+i=199 mode=0 duty=0 speed=0 m/s

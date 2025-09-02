@@ -16,6 +16,9 @@ namespace app {
     // dt = elapsed time since last tick (seconds)
     void tick(float dt);
 
+    // Immediately enter E_STOP mode
+    void emergency_stop();
+
     // Get the current operating mode
     Mode mode();
 

@@ -1,4 +1,6 @@
 #include "state_machine.h"
+#include "motors.h"
+#include "encoders.h"
 #include <chrono>
 #include <thread>
 #include <iostream>
@@ -19,14 +21,31 @@ int main() {
     for (int i = 0; i < 200; ++i) {
         // State transitions at specific times
         if (i == 30)  app::set_target_speed(0.5f); // Switch to RUN mode at t=0.30s
+        if (i == 100) {
+        // Simulate emergency stop at t=1.00s
+            app::emergency_stop();
+            std::cout << "EMERGENCY STOP ACTIVATED\n";
+        }
         if (i == 150) app::set_target_speed(0.0f); // Switch back to IDLE at t=1.50s
+
+        if (i == 170) {
+            // Reset from E_STOP at t=1.70s
+             app::reset();
+             std::cout << "EMERGENCY STOP RESET\n";
+        }
 
         // Update the state machine
         app::tick(dt);
 
         // Output current iteration and state machine mode
         // Mode values: 0=IDLE, 1=RUN, 2=E_STOP
-        std::cout << "i=" << i << " mode=" << static_cast<int>(app::mode()) << "\n";
+        // Enhanced output to show simulation in action
+        std::cout << "i=" << i 
+                << " mode=" << static_cast<int>(app::mode()) 
+                << " duty=" << hal::motors::current_left_duty
+                << " speed=" << hal::encoders::get_speed() 
+                << " m/s\n";
+    
 
         // Sleep until next update time to maintain consistent timing
         next_tick += duration_cast<steady_clock::duration>(duration<float>(dt));

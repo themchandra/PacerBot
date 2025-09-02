@@ -1,5 +1,6 @@
 #include "state_machine.h"
 #include "motors.h"
+#include "encoders.h"
 
 namespace app {
     // Constants
@@ -24,6 +25,9 @@ namespace app {
     }
 
     void tick(float dt) {
+        // Update encoders simulation (only in mock implementation)
+        hal::encoders::update_simulation(dt);
+        
         switch (current_mode) {
             case Mode::IDLE:
                 hal::motors::set_duty(MOTOR_STOP_DUTY, MOTOR_STOP_DUTY);
@@ -39,6 +43,11 @@ namespace app {
                 hal::motors::set_duty(MOTOR_STOP_DUTY, MOTOR_STOP_DUTY);
                 break;
         }
+    }
+
+    void emergency_stop() {
+        current_mode = Mode::E_STOP;
+        hal::motors::set_duty(MOTOR_STOP_DUTY, MOTOR_STOP_DUTY);
     }
     
     Mode mode() {
