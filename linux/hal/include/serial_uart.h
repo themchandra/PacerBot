@@ -36,7 +36,7 @@ class SerialUART {
      * 		  read/write operations.
      * @return true if successfully opened & configured, false otherwise.
      */
-    bool openPort();
+    void openPort();
 
 
     /**
@@ -50,7 +50,7 @@ class SerialUART {
      * @param size Maximum number of bytes to read.
      * @return Number of bytes read, or -1 on error.
      */
-    int readData(char *buffer, size_t size);
+    ssize_t readData(char *buffer, size_t size);
 
     /**
      * @brief Writes data to the UART port.
@@ -58,7 +58,7 @@ class SerialUART {
      * @param size Number of bytes to write.
      * @return Number of bytes written, or -1 on error.
      */
-    int writeData(const char *data, size_t size);
+    ssize_t writeData(const char *data, size_t size);
 
     /**
      * @brief Checks if the UART port is currently open.
@@ -76,7 +76,7 @@ class SerialUART {
      * @brief Configures the UART port with the specified settings.
      * @return true if configuration is successful, false otherwise.
      */
-    bool configurePort();
+    void configurePort();
 };
 
 #endif

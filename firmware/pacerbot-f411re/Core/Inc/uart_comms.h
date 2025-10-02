@@ -2,7 +2,7 @@
  * uart_comms.h
  *
  *  Created on: Sep 25, 2025
- *      Author: hayden
+ *      Author: Hayden Mai
  */
 
 #ifndef UART_COMMS_H_

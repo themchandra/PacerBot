@@ -9,6 +9,7 @@
  */
 
 #include "serial_uart.h"
+#include "exception/serial_exception.h"
 
 #include <cstring>
 #include <iostream>
@@ -32,52 +33,63 @@ SerialUART::~SerialUART()
 }
 
 
-bool SerialUART::openPort()
+void SerialUART::openPort()
 {
     // Open the serial port even if DCD (RS-232 serial) is low or absent
     fd_ = open(device_.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
     if (fd_ == -1) {
-        std::cerr << "Failed to open UART port\n";
-        return false;
+        throw SerialException("Failed to open UART port " + device_ + ": "
+                              + strerror(errno));
     }
 
     // Set to blocking I/O, use (fd, F_SETFL, FNDELAY) for non-blocking
-    fcntl(fd_, F_SETFL, 0);
-    isOpen_ = configurePort();
+    if (fcntl(fd_, F_SETFL, 0) == -1) {
+        throw SerialException("Failed to set UART blocking mode: "
+                              + std::string(strerror(errno)));
+    }
 
-    return isOpen_;
+    configurePort();
+    isOpen_ = true;
 }
 
 
 void SerialUART::closePort()
 {
     if (isOpen_) {
-        close(fd_);
+        if (close(fd_) == -1) {
+            throw SerialException("Failed to close UART port: "
+                                  + std::string(strerror(errno)));
+        }
+
         isOpen_ = false;
     }
 }
 
 
-int SerialUART::readData(char *buffer, size_t size)
+ssize_t SerialUART::readData(char *buffer, size_t size)
 {
     if (!isOpen_) {
-        return -1;
+        throw SerialException("Attempted to read, UART port is not open");
     }
 
-    return read(fd_, buffer, size);
+    ssize_t bytesRead = read(fd_, buffer, size);
+    if (bytesRead < 0) {
+        throw SerialException("Failed to read from UART: "
+                              + std::string(strerror(errno)));
+    }
+    return bytesRead;
 }
 
 
-int SerialUART::writeData(const char *data, size_t size)
+ssize_t SerialUART::writeData(const char *data, size_t size)
 {
     if (!isOpen_) {
-        return -1;
+        throw SerialException("Attempted to write, UART port is not open");
     }
 
     int bytesWritten = write(fd_, data, size);
     if (bytesWritten < 0) {
-        std::cerr << "Failed to write to UART port\n";
-        return -1;
+        throw SerialException("Failed to write to UART: " + std::string(strerror(errno)));
     }
 
     return bytesWritten;
@@ -87,14 +99,14 @@ int SerialUART::writeData(const char *data, size_t size)
 bool SerialUART::isOpen() const { return isOpen_; }
 
 
-bool SerialUART::configurePort()
+void SerialUART::configurePort()
 {
     // termios stores the general terminal interface to control asynchronous comm ports
     struct termios options;
 
     if (tcgetattr(fd_, &options) != 0) {
-        std::cerr << "Failed to get UART attributes\n";
-        return false;
+        throw SerialException("Failed to get UART attributes: "
+                              + std::string(strerror(errno)));
     }
 
     // Set serial I/O baud rate
@@ -116,9 +128,7 @@ bool SerialUART::configurePort()
 
     tcflush(fd_, TCIFLUSH);
     if (tcsetattr(fd_, TCSANOW, &options) != 0) { // Apply settings immediately
-        std::cerr << "Failed to set UART attributes\n";
-        return false;
+        throw SerialException("Failed to set UART attributes: "
+                              + std::string(strerror(errno)));
     }
-
-    return true;
 }
