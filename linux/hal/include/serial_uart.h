@@ -16,6 +16,10 @@
 /**
  * @class SerialUART
  * @brief A class for serial communication using UART.
+ *
+ * This class provides UART functionality including opening, closing,
+ * reading from, and writing to a serial port. All error conditions now throw
+ * exceptions of type SerialException.
  */
 class SerialUART {
   public:
@@ -28,19 +32,21 @@ class SerialUART {
 
     /**
      * @brief Closes the port if open and destruct the object instance.
+     * @throws SerialException if closing the port fails.
      */
     ~SerialUART();
 
     /**
-     * @brief Opens and configures the UART port. This must be done at least once for
-     * 		  read/write operations.
-     * @return true if successfully opened & configured, false otherwise.
+     * @brief Opens and configures the UART port. Must be called before any read/write
+     * operations.
+     * @throws SerialException if port cannot be opened or configured.
      */
     void openPort();
 
 
     /**
      * @brief Closes the UART port if it is open.
+     * @throws SerialException if closing the port fails.
      */
     void closePort();
 
@@ -48,7 +54,8 @@ class SerialUART {
      * @brief Reads data from the UART port.
      * @param buffer Pointer to a character array to store the read data.
      * @param size Maximum number of bytes to read.
-     * @return Number of bytes read, or -1 on error.
+     * @return Number of bytes read.
+     * @throws SerialException if closing the port fails.
      */
     ssize_t readData(char *buffer, size_t size);
 
@@ -56,7 +63,8 @@ class SerialUART {
      * @brief Writes data to the UART port.
      * @param data Pointer to the data to write.
      * @param size Number of bytes to write.
-     * @return Number of bytes written, or -1 on error.
+     * @return Number of bytes written.
+     * @throws SerialException if the port is not open or a write error occurs.
      */
     ssize_t writeData(const char *data, size_t size);
 
@@ -74,7 +82,7 @@ class SerialUART {
 
     /**
      * @brief Configures the UART port with the specified settings.
-     * @return true if configuration is successful, false otherwise.
+     * @throws SerialException if configuration fails.
      */
     void configurePort();
 };

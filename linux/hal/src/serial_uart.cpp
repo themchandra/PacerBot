@@ -26,10 +26,7 @@ SerialUART::SerialUART(const std::string &device, int baudrate)
 
 SerialUART::~SerialUART()
 {
-    if (isOpen_) {
-        close(fd_);
-        isOpen_ = false;
-    }
+	closePort();
 }
 
 
