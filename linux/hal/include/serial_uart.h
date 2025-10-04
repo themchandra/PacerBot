@@ -14,6 +14,13 @@
 #include <iostream>
 
 /**
+ * A List of Functions That can be Added:
+ * - Changing Baudrate
+ * - Change device file 
+ * - UART protocol configuration (parity, stop bit, etc.)
+ */
+
+/**
  * @class SerialUART
  * @brief A class for serial communication using UART.
  *
