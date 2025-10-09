@@ -24,19 +24,22 @@ namespace UART_Comm {
     void cleanup();
 
     /**
-     * @brief Starts thread to receive data from UART
+     * @brief Starts thread to automatically receive data from UART.
      */
     void recv_start();
     void recv_stop();
 
+
     /**
-     * @brief Starts thread to transmit data in queue via UART.
+     * @brief Starts thread to automatically transmit data in queue via UART.
      */
     void send_start();
     void send_stop();
 
-    void enqueue_command(struct Message &msg);
-    void
+    void send_enqueue(struct Message &msg);
+    void send_isQueueEmpty(void);
+	void send_queueSize(void);
+	void send_clearQueue(void);
 
 } // namespace UART_Comm
 
