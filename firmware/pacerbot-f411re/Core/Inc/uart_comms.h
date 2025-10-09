@@ -1,60 +1,56 @@
 /*
- * uart_comms.h
+ * uart_comm.h
  *
  *  Created on: Sep 25, 2025
  *      Author: Hayden Mai
  */
 
-#ifndef UART_COMMS_H_
-#define UART_COMMS_H_
+#ifndef UART_COMM_H_
+#define UART_COMM_H_
 
 #include "FreeRTOS.h"
 #include "queue.h"
 
-class UART_Comms {
-public:
-	// Configuration
-	static const uint8_t MAX_MSG_SIZE {128};
+class UART_Comm {
+  public:
+    // Configuration
+    static const uint8_t MAX_MSG_SIZE {128};
 
-	// Message structure
-	struct Message {
-		uint8_t data[MAX_MSG_SIZE];
-		uint8_t len;
-	};
-
-
-	UART_Comms(UART_HandleTypeDef* huart,
-               size_t queueLength_tx = 10,
-			   size_t queueLength_rx = 10);
-	~UART_Comms();
+    // Message structure
+    struct Message {
+        uint8_t data[MAX_MSG_SIZE];
+        uint8_t len;
+    };
 
 
-	// --- Transmit Messages ---
-	bool enqueue_send(const uint8_t *data, size_t length);
-	void dequeue_send(struct Message &msg);
-	void peek_send(struct Message &msg);
-	bool isQueueEmpty_send(void) const;
-	uint8_t size_send(void) const;
-	bool clearQueue_send(void);
-
-	// Dequeue & transmit the message
-	bool process_send();
+    UART_Comm(UART_HandleTypeDef *huart, size_t queueLength_tx = 10,
+              size_t queueLength_rx = 10);
+    ~UART_Comm();
 
 
-	// --- Receiving Messages ---
-	bool enqueue_recv(const uint8_t *data, size_t length);
-	void dequeue_recv(struct Message &msg);
-	void peek_recv(struct Message &msg);
-	bool isQueueEmpty_recv(void) const;
-	uint8_t size_recv(void) const;
-	bool clearQueue_recv(void);
+    // Transmit Messages
+    bool send_enqueue(const uint8_t *data, size_t length);
+    void send_dequeue(struct Message &msg);
+    void send_peek(struct Message &msg);
+    bool send_isQueueEmpty(void) const;
+    uint8_t send_queueSize(void) const;
+    bool send_clearQueue(void);
+    bool send_process(); // Dequeue & transmit the message
 
-private:
-	UART_HandleTypeDef* huart_;
+    // Receiving Messages
+    bool recv_enqueue(const uint8_t *data, size_t length);
+    void recv_dequeue(struct Message &msg);
+    void recv_peek(struct Message &msg);
+    bool recv_isQueueEmpty(void) const;
+    uint8_t recv_queueSize(void) const;
+    bool recv_clearQueue(void);
 
-	QueueHandle_t queue_rx_;
-	QueueHandle_t queue_tx_;
+  private:
+    UART_HandleTypeDef *huart_;
+
+    QueueHandle_t queue_rx_;
+    QueueHandle_t queue_tx_;
 };
 
 
-#endif /* UART_COMMS_H_ */
+#endif /* UART_COMM_H_ */
