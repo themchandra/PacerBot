@@ -6,3 +6,6 @@
 # Build outputs
 build/
 Debug/
+
+# OS Specific folders
+.DS_Store
