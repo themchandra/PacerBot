@@ -1,6 +1,0 @@
-<<<<<<< HEAD
-../Core/Src/sysmem.c:53:7:_sbrk	32	static
-||||||| parent of 26b7a51 (got printing working over UART2 and testing read from mpu)
-=======
-../Core/Src/sysmem.c:53:7:_sbrk	32	static
->>>>>>> 26b7a51 (got printing working over UART2 and testing read from mpu)

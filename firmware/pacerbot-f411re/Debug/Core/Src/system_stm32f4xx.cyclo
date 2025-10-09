@@ -1,8 +1,0 @@
-<<<<<<< HEAD
-../Core/Src/system_stm32f4xx.c:167:6:SystemInit	1
-../Core/Src/system_stm32f4xx.c:220:6:SystemCoreClockUpdate	6
-||||||| parent of 26b7a51 (got printing working over UART2 and testing read from mpu)
-=======
-../Core/Src/system_stm32f4xx.c:167:6:SystemInit	1
-../Core/Src/system_stm32f4xx.c:220:6:SystemCoreClockUpdate	6
->>>>>>> 26b7a51 (got printing working over UART2 and testing read from mpu)
