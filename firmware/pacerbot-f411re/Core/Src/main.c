@@ -19,6 +19,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "mpu6050.h"
+#include "stdio.h"
+#include "string.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,6 +45,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+
 UART_HandleTypeDef huart2;
 
 /* Definitions for defaultTask */
@@ -58,6 +64,7 @@ const osThreadAttr_t defaultTask_attributes = {
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_I2C1_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -98,7 +105,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  setbuf(stdout, NULL); // make printf unbuffered
+  printf("\r\nUART printf ready\r\n");
+
 
   /* USER CODE END 2 */
 
@@ -140,14 +151,21 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+<<<<<<< HEAD
   while (1)
   {
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 	HAL_Delay(1000);
     /* USER CODE END WHILE */
+||||||| parent of 26b7a51 (got printing working over UART2 and testing read from mpu)
+  while (1)
+  {
+    /* USER CODE END WHILE */
+=======
+  while (1);
 
-    /* USER CODE BEGIN 3 */
-  }
+>>>>>>> 26b7a51 (got printing working over UART2 and testing read from mpu)
+
   /* USER CODE END 3 */
 }
 
@@ -195,6 +213,40 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
@@ -270,6 +322,39 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/* USER CODE BEGIN 4 */
+static const uint8_t MPU_ADDR = 0x68; // 0x69 if AD0=1
+
+void testMPU6050(void)
+{
+    HAL_StatusTypeDef st;
+    uint8_t val;
+
+    // (a) Optional full device reset
+    val = 0x80; // DEVICE_RESET
+    st = HAL_I2C_Mem_Write(&hi2c1, MPU_ADDR<<1, 0x6B, I2C_MEMADD_SIZE_8BIT, &val, 1, 100);
+    HAL_Delay(100);
+
+    // (b) Wake + select PLL X-gyro clock (CLKSEL=1, SLEEP=0) => 0x01
+    val = 0x01;
+    st = HAL_I2C_Mem_Write(&hi2c1, MPU_ADDR<<1, 0x6B, I2C_MEMADD_SIZE_8BIT, &val, 1, 100);
+    HAL_Delay(10);
+
+    // (c) Read back PWR_MGMT_1 to verify
+    val = 0;
+    st = HAL_I2C_Mem_Read(&hi2c1, MPU_ADDR<<1, 0x6B, I2C_MEMADD_SIZE_8BIT, &val, 1, 100);
+    printf("PWR_MGMT_1 = 0x%02X\r\n", val);  // expect 0x01
+
+    // (d) WHO_AM_I should be 0x68 on genuine 6050
+    uint8_t who = 0;
+    st = HAL_I2C_Mem_Read(&hi2c1, MPU_ADDR<<1, 0x75, I2C_MEMADD_SIZE_8BIT, &who, 1, 100);
+    printf("WHO_AM_I = 0x%02X\r\n", who);     // expect 0x68
+}
+
+/* USER CODE END 4 */
+
+
+/* USER CODE END 4 */
 
 /* USER CODE END 4 */
 
@@ -283,9 +368,26 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
+	// Go through all possible i2c addresses
+  printf("Hello world\n");
+  for (uint8_t i = 0; i < 128; i++) {
+
+	  if (HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i<<1), 3, 5) == HAL_OK) {
+		  // We got an ack
+		  printf("%2x ", i);
+	  } else {
+		  printf("-- ");
+	  }
+
+	  if (i > 0 && (i + 1) % 16 == 0) printf("\n");
+
+  }
+
+  printf("\n");
+  printf("Testing MPU6050...\r\n");
+  testMPU6050();
+
+  for(;;){
     osDelay(1);
   }
   /* USER CODE END 5 */

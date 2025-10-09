@@ -1,6 +1,18 @@
+<<<<<<< HEAD
 ../Core/Src/main.c:76:5:main	1
 ../Core/Src/main.c:158:6:SystemClock_Config	3
 ../Core/Src/main.c:205:13:MX_USART2_UART_Init	2
 ../Core/Src/main.c:238:13:MX_GPIO_Init	1
 ../Core/Src/main.c:283:6:StartDefaultTask	1
 ../Core/Src/main.c:298:6:Error_Handler	1
+||||||| parent of 26b7a51 (got printing working over UART2 and testing read from mpu)
+=======
+../Core/Src/main.c:83:5:main	1
+../Core/Src/main.c:165:6:SystemClock_Config	3
+../Core/Src/main.c:212:13:MX_I2C1_Init	2
+../Core/Src/main.c:246:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:279:13:MX_GPIO_Init	1
+../Core/Src/main.c:317:6:testMPU6050	1
+../Core/Src/main.c:357:6:StartDefaultTask	5
+../Core/Src/main.c:389:6:Error_Handler	1
+>>>>>>> 26b7a51 (got printing working over UART2 and testing read from mpu)

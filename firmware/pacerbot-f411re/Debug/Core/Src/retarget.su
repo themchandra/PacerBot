@@ -1,0 +1,2 @@
+../Core/Src/retarget.c:14:13:tx_blocking	16	static
+../Core/Src/retarget.c:19:5:_write	32	static
