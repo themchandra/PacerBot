@@ -1,4 +1,8 @@
-build/
+# STM32CubeIDE
 .cache/
 .settings/
+*.launch
+
+# Build outputs
+build/
 Debug/
