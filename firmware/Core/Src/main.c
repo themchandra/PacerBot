@@ -21,6 +21,7 @@
 #include "cmsis_os.h"
 #include "stdio.h"
 #include "string.h"
+#include <unistd.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -34,6 +35,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define DEVICE_ADDRESS 0x68
+#define WHO_AM_I 0x75
+#define ACCEL_CONFIG 0x1C
+#define ACCEL_Y 0x3D
 
 /* USER CODE END PD */
 
@@ -78,6 +83,39 @@ void StartDefaultTask(void *argument);
   * @brief  The application entry point.
   * @retval int
   */
+
+void read_WHO_AM_I_reg(){
+	uint8_t buff[1] = {0};
+
+	buff[0] = WHO_AM_I;
+	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, WHO_AM_I, 1, &buff, 1, HAL_MAX_DELAY)!= HAL_OK) {
+		Error_Handler;
+	}
+
+	printf("%x", buff[0]);
+}
+
+void read_accel_data() {
+	uint8_t data[2];
+	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, ACCEL_Y, 1, &data, 2, HAL_MAX_DELAY)!= HAL_OK) {
+			Error_Handler;
+		}
+	int16_t raw_y = (int16_t)((data[1] << 8) | data[0]);
+
+	for (int i = 0; i < 2; i++) {
+		printf("%d\n",raw_y);
+		vTaskDelay(500);
+	}
+
+
+
+
+    // Sensor sends LSB first for each axis.
+
+
+}
+
+
 int main(void)
 {
 
@@ -324,20 +362,29 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  printf("Hello world\n");
+  printf("Starting I2C Scan\n");
 
+  // Go through all the possible I2C addresses
   for (uint8_t i = 0; i < 128; i++) {
 	  if (HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i << 1), 3, 5) == HAL_OK)
 		  printf("%2x ", i);
 	  else
 		  printf("-- ");
 
+	  // new line every 16 addresses
 	  if (i > 0 && (i + 1) % 16 == 0)
 		  printf("\n");
 		 }
 
   printf("\n");
 
+
+  read_WHO_AM_I_reg();
+  while(1){
+	  read_accel_data();
+	  //sleep(1);
+
+  }
   /* Infinite loop */
   for(;;)
   {
