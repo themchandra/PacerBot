@@ -40,6 +40,7 @@
 #define ACCEL_CONFIG 0x1C
 #define ACCEL_XOUT_H 0x3B
 #define ACCEL_YOUT_H 0x3D
+#define GYRO_XOUT_H 0x43
 
 /* USER CODE END PD */
 
@@ -97,22 +98,45 @@ void read_WHO_AM_I_reg(){
 }
 
 void read_accel_data() {
-	uint8_t data[6];
-	if (HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 6, HAL_MAX_DELAY)!= HAL_OK) {
+	uint8_t data[8];
+	if (HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 8, HAL_MAX_DELAY)!= HAL_OK) {
 			Error_Handler;
 		}
-	int16_t raw_x = (int16_t)((data[0] << 8) | data[1]);
-	int16_t raw_y = (int16_t)((data[2] << 8) | data[3]);
-	int16_t raw_z = (int16_t)((data[4] << 8) | data[5]);
+	int16_t raw_ax =    (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_ay =    (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_az =    (int16_t)((data[4] << 8) | data[5]);
+	int16_t raw_temp =  (int16_t)((data[6] << 8) | data[7]);
+//	int16_t raw_gx =    (int16_t)((data[8] << 8) | data[9]);
+//	int16_t raw_gy =    (int16_t)((data[10] << 8) | data[11]);
+//	int16_t raw_gz =    (int16_t)((data[12] << 8) | data[13]);
 
-	float x = raw_x * 0.00006103515;
-	float y = raw_y * 0.00006103515;
-	float z = raw_z * 0.00006103515;
+	float ax = raw_ax * 0.00006103515;
+	float ay = raw_ay * 0.00006103515;
+	float az = raw_az * 0.00006103515;
 
-	printf("x=%.3f, y=%.3f, z=%.3f\n",x, y, z);
+	float temp = ((float)raw_temp/340) + 36.53;
+
+	//printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
+	//printf("temp in C = %.3f\n", temp);
 
 }
 
+void read_gyro_data() {
+	uint8_t data[6];
+	if (HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, GYRO_XOUT_H, 1, data, 6, HAL_MAX_DELAY)!= HAL_OK) {
+			Error_Handler;
+		}
+	int16_t raw_gx =    (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_gy =    (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_gz =    (int16_t)((data[4] << 8) | data[5]);
+
+	float gx = raw_gx * 0.00763358778;
+	float gy = raw_gy * 0.00763358778;
+	float gz = raw_gz * 0.00763358778;
+
+
+	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
+}
 
 int main(void)
 {
@@ -380,8 +404,10 @@ void StartDefaultTask(void *argument)
   read_WHO_AM_I_reg();
   while(1){
 
-	  read_accel_data();
-	  //vTaskDelay(100);
+	  read_gyro_data();
+	  //osDelay(1000);
+	  //read_accel_data();
+	  //vTaskDelay(200);
 
   }
   /* Infinite loop */
