@@ -35,10 +35,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DEVICE_ADDRESS 0x68
+#define IMU_ADDRESS 0x68
 #define WHO_AM_I 0x75
 #define ACCEL_CONFIG 0x1C
-#define ACCEL_Y 0x3D
+#define ACCEL_XOUT_H 0x3B
+#define ACCEL_YOUT_H 0x3D
 
 /* USER CODE END PD */
 
@@ -88,7 +89,7 @@ void read_WHO_AM_I_reg(){
 	uint8_t buff[1] = {0};
 
 	buff[0] = WHO_AM_I;
-	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY)!= HAL_OK) {
+	if (HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY)!= HAL_OK) {
 		Error_Handler;
 	}
 
@@ -96,13 +97,19 @@ void read_WHO_AM_I_reg(){
 }
 
 void read_accel_data() {
-	uint8_t data[2];
-	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, ACCEL_Y, 1, data, 2, HAL_MAX_DELAY)!= HAL_OK) {
+	uint8_t data[6];
+	if (HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 6, HAL_MAX_DELAY)!= HAL_OK) {
 			Error_Handler;
 		}
-	int16_t raw_y = (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_x = (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_y = (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_z = (int16_t)((data[4] << 8) | data[5]);
+
+	float x = raw_x * 0.00006103515;
 	float y = raw_y * 0.00006103515;
-	printf("%f\n", y);
+	float z = raw_z * 0.00006103515;
+
+	printf("x=%.3f, y=%.3f, z=%.3f\n",x, y, z);
 
 }
 
