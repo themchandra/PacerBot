@@ -88,30 +88,21 @@ void read_WHO_AM_I_reg(){
 	uint8_t buff[1] = {0};
 
 	buff[0] = WHO_AM_I;
-	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, WHO_AM_I, 1, &buff, 1, HAL_MAX_DELAY)!= HAL_OK) {
+	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY)!= HAL_OK) {
 		Error_Handler;
 	}
 
-	printf("%x", buff[0]);
+	printf("%x\n", buff[0]);
 }
 
 void read_accel_data() {
 	uint8_t data[2];
-	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, ACCEL_Y, 1, &data, 2, HAL_MAX_DELAY)!= HAL_OK) {
+	if (HAL_I2C_Mem_Read(&hi2c1, DEVICE_ADDRESS << 1, ACCEL_Y, 1, data, 2, HAL_MAX_DELAY)!= HAL_OK) {
 			Error_Handler;
 		}
-	int16_t raw_y = (int16_t)((data[1] << 8) | data[0]);
-
-	for (int i = 0; i < 2; i++) {
-		printf("%d\n",raw_y);
-		vTaskDelay(500);
-	}
-
-
-
-
-    // Sensor sends LSB first for each axis.
-
+	int16_t raw_y = (int16_t)((data[0] << 8) | data[1]);
+	float y = raw_y * 0.00006103515;
+	printf("%f\n", y);
 
 }
 
@@ -381,8 +372,9 @@ void StartDefaultTask(void *argument)
 
   read_WHO_AM_I_reg();
   while(1){
+
 	  read_accel_data();
-	  //sleep(1);
+	  //vTaskDelay(100);
 
   }
   /* Infinite loop */
