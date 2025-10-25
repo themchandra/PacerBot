@@ -1,4 +1,14 @@
-build/
+# STM32CubeIDE
 .cache/
 .settings/
+*.launch
+
+# VSCode
+.vscode
+
+# Build outputs
+build/
 Debug/
+
+# OS Specific folders
+.DS_Store
