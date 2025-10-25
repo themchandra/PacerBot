@@ -3,6 +3,9 @@
 .settings/
 *.launch
 
+# VSCode
+.vscode
+
 # Build outputs
 build/
 Debug/
