@@ -80,6 +80,57 @@ void StartDefaultTask(void *argument);
 
 /* USER CODE END 0 */
 
+int _write(int file, char *data, int len)
+{
+    (void)file;
+    HAL_UART_Transmit(&huart2, (uint8_t*)data, (uint16_t)len, HAL_MAX_DELAY);
+    return len;
+}
+
+void read_WHO_AM_I_reg(){
+	uint8_t buff[1] = {0};
+	buff[0] = WHO_AM_I;
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY);
+	printf("%x\n", buff[0]);
+}
+
+void read_accel_data() {
+	uint8_t data[8];
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 8, HAL_MAX_DELAY);
+	int16_t raw_ax =    (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_ay =    (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_az =    (int16_t)((data[4] << 8) | data[5]);
+	int16_t raw_temp =  (int16_t)((data[6] << 8) | data[7]);
+//	int16_t raw_gx =    (int16_t)((data[8] << 8) | data[9]);
+//	int16_t raw_gy =    (int16_t)((data[10] << 8) | data[11]);
+//	int16_t raw_gz =    (int16_t)((data[12] << 8) | data[13]);
+
+	float ax = raw_ax * 0.00006103515;
+	float ay = raw_ay * 0.00006103515;
+	float az = raw_az * 0.00006103515;
+
+	float temp = ((float)raw_temp/340) + 36.53;
+
+	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
+	printf("temp in C = %.3f\n", temp);
+
+}
+
+/* void read_gyro_data() {
+	uint8_t data[6];
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, GYRO_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
+	int16_t raw_gx =    (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_gy =    (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_gz =    (int16_t)((data[4] << 8) | data[5]);
+
+	float gx = raw_gx * 0.00763358778;
+	float gy = raw_gy * 0.00763358778;
+	float gz = raw_gz * 0.00763358778;
+
+
+	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
+} */
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -112,9 +163,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  setbuf(stdout, NULL); // make printf unbuffered
-  printf("\r\nUART printf ready\r\n");
-
+  setvbuf(stdout, NULL, _IONBF, 0);
+  printf("BOOT: hello on USART2\n");
+ 
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -350,10 +401,12 @@ void StartDefaultTask(void *argument)
   read_WHO_AM_I_reg();
   while(1){
 
-	  read_gyro_data();
+	  //read_gyro_data();
 	  //osDelay(1000);
 	  //read_accel_data();
 	  //vTaskDelay(200);
+    read_WHO_AM_I_reg();
+    osDelay(200);
 
   }
   /* Infinite loop */
