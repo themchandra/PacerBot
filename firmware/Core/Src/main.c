@@ -57,7 +57,7 @@ UART_HandleTypeDef huart2;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -105,9 +105,7 @@ void read_accel_data() {
 	float ay = raw_ay * 0.00006103515;
 	float az = raw_az * 0.00006103515;
 
-	printf("x=%f, y=%f, z=%f\n",ax, ay, az);
-	
-
+	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
 }
 
 /* void read_gyro_data() {
@@ -400,7 +398,8 @@ void StartDefaultTask(void *argument)
 	  //read_accel_data();
 	  //vTaskDelay(200);
     read_accel_data();
-    //osDelay(200);
+    //printf("hello\n");
+    vTaskDelay(500);
 
   }
   /* Infinite loop */
