@@ -67,6 +67,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 
+# Add float printf support
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,-u,_printf_float)
+
 # Add a custom command to create .bin from .elf
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.elf ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.bin

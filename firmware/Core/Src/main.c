@@ -95,24 +95,18 @@ void read_WHO_AM_I_reg(){
 }
 
 void read_accel_data() {
-	uint8_t data[8];
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 8, HAL_MAX_DELAY);
+	uint8_t data[6];
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
 	int16_t raw_ax =    (int16_t)((data[0] << 8) | data[1]);
 	int16_t raw_ay =    (int16_t)((data[2] << 8) | data[3]);
 	int16_t raw_az =    (int16_t)((data[4] << 8) | data[5]);
-	int16_t raw_temp =  (int16_t)((data[6] << 8) | data[7]);
-//	int16_t raw_gx =    (int16_t)((data[8] << 8) | data[9]);
-//	int16_t raw_gy =    (int16_t)((data[10] << 8) | data[11]);
-//	int16_t raw_gz =    (int16_t)((data[12] << 8) | data[13]);
 
 	float ax = raw_ax * 0.00006103515;
 	float ay = raw_ay * 0.00006103515;
 	float az = raw_az * 0.00006103515;
 
-	float temp = ((float)raw_temp/340) + 36.53;
-
-	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
-	printf("temp in C = %.3f\n", temp);
+	printf("x=%f, y=%f, z=%f\n",ax, ay, az);
+	
 
 }
 
@@ -405,8 +399,8 @@ void StartDefaultTask(void *argument)
 	  //osDelay(1000);
 	  //read_accel_data();
 	  //vTaskDelay(200);
-    read_WHO_AM_I_reg();
-    osDelay(200);
+    read_accel_data();
+    //osDelay(200);
 
   }
   /* Infinite loop */
