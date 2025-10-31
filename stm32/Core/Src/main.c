@@ -22,7 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdio.h"
+#include "string.h"
+#include <unistd.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,6 +34,12 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define IMU_ADDRESS 0x68
+#define WHO_AM_I 0x75
+#define ACCEL_CONFIG 0x1C
+#define ACCEL_XOUT_H 0x3B
+#define ACCEL_YOUT_H 0x3D
+#define GYRO_XOUT_H 0x43
 
 /* USER CODE END PD */
 
@@ -50,7 +58,7 @@ UART_HandleTypeDef huart2;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -73,6 +81,42 @@ void StartDefaultTask(void *argument);
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
+
+void read_WHO_AM_I_reg(){
+	uint8_t buff[1] = {0};
+	buff[0] = WHO_AM_I;
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY);
+	printf("%x\n", buff[0]);
+}
+
+void read_accel_data() {
+	uint8_t data[6];
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
+	int16_t raw_ax =    (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_ay =    (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_az =    (int16_t)((data[4] << 8) | data[5]);
+
+	float ax = raw_ax * 0.00006103515;
+	float ay = raw_ay * 0.00006103515;
+	float az = raw_az * 0.00006103515;
+
+	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
+}
+
+/* void read_gyro_data() {
+	uint8_t data[6];
+	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, GYRO_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
+	int16_t raw_gx =    (int16_t)((data[0] << 8) | data[1]);
+	int16_t raw_gy =    (int16_t)((data[2] << 8) | data[3]);
+	int16_t raw_gz =    (int16_t)((data[4] << 8) | data[5]);
+
+	float gx = raw_gx * 0.00763358778;
+	float gy = raw_gy * 0.00763358778;
+	float gz = raw_gz * 0.00763358778;
+
+
+	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
+} */
 
 /**
   * @brief  The application entry point.
@@ -103,11 +147,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
+  setvbuf(stdout, NULL, _IONBF, 0);
+  printf("BOOT: hello on USART2\n");
+ 
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -356,6 +402,35 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  printf("Starting I2C Scan\n");
+
+  // Go through all the possible I2C addresses
+  for (uint8_t i = 0; i < 128; i++) {
+	  if (HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i << 1), 3, 5) == HAL_OK)
+		  printf("%2x", i);
+	  else
+		  printf("-- ");
+
+	  // new line every 16 addresses
+	  if (i > 0 && (i + 1) % 16 == 0)
+		  printf("\n");
+		 }
+
+  printf("\n");
+
+
+  read_WHO_AM_I_reg();
+  while(1){
+
+	  //read_gyro_data();
+	  //osDelay(1000);
+	  //read_accel_data();
+	  //vTaskDelay(200);
+    read_accel_data();
+    //printf("hello\n");
+    vTaskDelay(500);
+
+  }
   /* Infinite loop */
   for(;;)
   {
