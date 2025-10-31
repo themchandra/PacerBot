@@ -1,0 +1,153 @@
+/**
+ * @file recv.h
+ * @brief Handles incoming packets from UART
+ * @author Hayden Mai
+ * @date Oct-30-2025
+ */
+
+#include "comm/uart/config.h"
+#include "comm/uart/recv.h"
+
+#include <atomic>
+#include <cassert>
+#include <mutex>
+#include <optional>
+#include <queue>
+#include <thread>
+
+namespace {
+    bool isInitialized_ {false};
+
+    // Shared pointer to the serial port
+    std::shared_ptr<SerialUART> uartPtr_ {nullptr};
+
+    // Queue for storing messages
+    std::queue<uart::DataPacket> queue_;
+
+    // Threading
+    std::atomic_bool isThreadRunning_ {false};
+    std::thread thread_;
+    std::mutex queue_mtx_;
+
+
+    void parseNQueue(uint8_t *data, size_t len)
+    {
+        // TODO: Determine if this is correct in case where the stream is
+        // continuous? Might need to do a robust implementation if so...
+        auto packet = uart::DataPacket::deserialize(data, len);
+        if (packet.has_value()) {
+            std::lock_guard<std::mutex> lock(queue_mtx_);
+            queue_.push(packet.value());
+        }
+    }
+
+
+    void thread_loop()
+    {
+        while (isThreadRunning_) {
+            // When a message arrives
+            //	- Parse the data (find the sync byte)
+            //	- Deserialize into DataPacket
+            // 	- Save into the queue
+            uint8_t buffer[uart::config::READ_BUF_SIZE] {};
+            size_t bytesRead = uartPtr_->readData(buffer, sizeof(buffer));
+
+            if (bytesRead > 0) {
+                parseNQueue(buffer, bytesRead);
+            }
+        }
+    }
+
+} // namespace
+
+
+namespace uart::recv {
+    void init(std::shared_ptr<SerialUART> uartPtr)
+    {
+        assert(!isInitialized_);
+
+        // Share ownership of pointer
+        uartPtr_ = uartPtr;
+        assert(uartPtr_ != nullptr);
+
+        isInitialized_ = true;
+    }
+
+
+    void deinit()
+    {
+        assert(isInitialized_);
+
+        // Releases ownership of object
+        uartPtr_.reset();
+
+        isInitialized_ = false;
+    }
+
+
+    void start()
+    {
+        assert(isInitialized_);
+        isThreadRunning_ = true;
+        thread_          = std::thread(thread_loop);
+    }
+
+
+    void stop()
+    {
+        assert(isInitialized_);
+        isThreadRunning_ = false;
+        thread_.join();
+    }
+
+
+    bool isRunning()
+    {
+        assert(isInitialized_);
+        return (isThreadRunning_);
+    }
+
+
+    std::optional<DataPacket> dequeue()
+    {
+        assert(isInitialized_);
+
+        std::lock_guard<std::mutex> lock(queue_mtx_);
+        if (queue_.empty()) {
+            return std::nullopt; // no packets
+        }
+
+        DataPacket packet = std::move(queue_.front());
+        queue_.pop();
+        return packet;
+    }
+
+
+    size_t getQueueSize()
+    {
+        assert(isInitialized_);
+        std::lock_guard<std::mutex> lock(queue_mtx_);
+        return queue_.size();
+    }
+
+
+    bool isQueueEmpty()
+    {
+        assert(isInitialized_);
+        std::lock_guard<std::mutex> lock(queue_mtx_);
+        return queue_.empty();
+    }
+
+
+    void clearQueue()
+    {
+        assert(isInitialized_);
+
+        // Create an empty queue and swap,
+        // Destructor for DataPacket objects will run
+        std::lock_guard<std::mutex> lock(queue_mtx_);
+        std::queue<DataPacket> q_empty;
+        std::swap(queue_, q_empty);
+    }
+
+} // namespace uart::recv

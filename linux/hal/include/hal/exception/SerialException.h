@@ -1,8 +1,8 @@
 /**
- * @file serial_uart.h
+ * @file SerialException.h
  * @brief I/O for serial communication (UART) port.
  * @author Hayden Mai
- * @date Oct-02-2025
+ * @date Oct-13-2025
  */
 
 #ifndef SERIAL_EXCEPTION_H_

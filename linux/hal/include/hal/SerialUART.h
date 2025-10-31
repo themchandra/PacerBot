@@ -1,8 +1,8 @@
 /**
- * @file serial_uart.h
+ * @file SerialUART.h
  * @brief I/O for serial communication (UART) port.
  * @author Hayden Mai
- * @date Oct-02-2025
+ * @date Oct-16-2025
  *
  * @link
  * https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
@@ -12,11 +12,12 @@
 #define SERIAL_UART_H_
 
 #include <iostream>
+#include <cstdint>
 
 /**
  * A List of Functions That can be Added:
  * - Changing Baudrate
- * - Change device file 
+ * - Change device file
  * - UART protocol configuration (parity, stop bit, etc.)
  */
 
@@ -34,8 +35,9 @@ class SerialUART {
      * @brief Constructs a SerialUART object.
      * @param device Path to the UART device file (e.g. "/dev/ttyS0").
      * @param baudrate Baud rate for the serial communication (e.g. B9600, B115200).
+     * @param timeout_sec Wait time until read or write times out.
      */
-    SerialUART(const std::string &device, int baudrate);
+    SerialUART(const std::string &device, int baudrate, int timeout_sec);
 
     /**
      * @brief Closes the port if open and destruct the object instance.
@@ -44,8 +46,8 @@ class SerialUART {
     ~SerialUART();
 
     /**
-     * @brief Opens and configures the UART port. Must be called before any read/write
-     * operations.
+     * @brief Opens and configures the UART port. Must be called
+     * 		  before any read/write operations.
      * @throws SerialException if port cannot be opened or configured.
      */
     void openPort();
@@ -64,7 +66,7 @@ class SerialUART {
      * @return Number of bytes read.
      * @throws SerialException if closing the port fails.
      */
-    ssize_t readData(char *buffer, size_t size);
+    ssize_t readData(uint8_t *buffer, size_t size) const;
 
     /**
      * @brief Writes data to the UART port.
@@ -73,7 +75,7 @@ class SerialUART {
      * @return Number of bytes written.
      * @throws SerialException if the port is not open or a write error occurs.
      */
-    ssize_t writeData(const char *data, size_t size);
+    ssize_t writeData(const uint8_t *data, size_t size) const;
 
     /**
      * @brief Checks if the UART port is currently open.
@@ -81,9 +83,17 @@ class SerialUART {
      */
     bool isOpen() const;
 
+	/**
+	 * @brief Set read/write timeout if there is no data.
+	 * @param seconds Duration in seconds before timeout.
+	 * @throws SerialException if configuration fails.
+	 */
+    void setTimeout(int seconds);
+
   private:
     std::string device_;  ///< Path to UART device file.
     int baudrate_;        ///< Baud rate for communication.
+    int timeout_sec_;     ///< Timeout for read & write
     int fd_ {-1};         ///< File Descriptor for the UART port.
     bool isOpen_ {false}; ///< Indicates if UART port is currently open.
 
@@ -91,7 +101,7 @@ class SerialUART {
      * @brief Configures the UART port with the specified settings.
      * @throws SerialException if configuration fails.
      */
-    void configurePort();
+    void configurePort() const;
 };
 
 #endif

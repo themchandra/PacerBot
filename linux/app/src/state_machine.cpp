@@ -1,6 +1,6 @@
 #include "state_machine.h"
-#include "motors.h"
-#include "encoders.h"
+#include "hal/motors.h"
+#include "hal/encoders.h"
 
 namespace app {
     // Constants

@@ -1,5 +1,5 @@
-#include "encoders.h"
-#include "motors.h"
+#include "hal/encoders.h"
+#include "hal/motors.h"
 #include <iostream>
 #include <cmath>
 
