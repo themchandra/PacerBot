@@ -80,13 +80,6 @@ void StartDefaultTask(void *argument);
 
 /* USER CODE END 0 */
 
-int _write(int file, char *data, int len)
-{
-    (void)file;
-    HAL_UART_Transmit(&huart2, (uint8_t*)data, (uint16_t)len, HAL_MAX_DELAY);
-    return len;
-}
-
 void read_WHO_AM_I_reg(){
 	uint8_t buff[1] = {0};
 	buff[0] = WHO_AM_I;
@@ -378,7 +371,7 @@ void StartDefaultTask(void *argument)
   // Go through all the possible I2C addresses
   for (uint8_t i = 0; i < 128; i++) {
 	  if (HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i << 1), 3, 5) == HAL_OK)
-		  printf("%2x ", i);
+		  printf("%2x", i);
 	  else
 		  printf("-- ");
 
