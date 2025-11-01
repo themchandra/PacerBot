@@ -2,7 +2,7 @@
  * @file send.cpp
  * @brief Handles data transmission via UART
  * @author Hayden Mai
- * @date Oct-17-2025
+ * @date Oct-31-2025
  */
 
 #include "comm/uart/config.h"
@@ -15,6 +15,7 @@
 #include <queue>
 #include <thread>
 
+// TODO: Semaphores for loop
 namespace {
     bool isInitialized_ {false};
 
