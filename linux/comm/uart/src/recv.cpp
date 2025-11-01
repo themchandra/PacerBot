@@ -2,7 +2,7 @@
  * @file recv.h
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Oct-30-2025
+ * @date Oct-31-2025
  */
 
 #include "comm/uart/config.h"
@@ -34,6 +34,12 @@ namespace {
     {
         // TODO: Determine if this is correct in case where the stream is
         // continuous? Might need to do a robust implementation if so...
+        // - Add current stream of bytes into buffer
+        // - Parse buffer:
+        //		- If not in a middle of a byte, begin parse with sync byte, loop
+        //		  until no more sync bytes are found
+        //		- If already in a middle of a byte, continue where it was left
+        //		  off, loop until no more sync bytes are found
         auto packet = uart::DataPacket::deserialize(data, len);
         if (packet.has_value()) {
             std::lock_guard<std::mutex> lock(queue_mtx_);
