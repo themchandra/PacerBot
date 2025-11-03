@@ -71,7 +71,6 @@ return 0;
     std::cout << "Init done!\n";
 
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
-        std::cout << "Check recv queue...\n";
         auto newPacket = uart::recv::dequeue();
 
         if (newPacket.has_value()) {
