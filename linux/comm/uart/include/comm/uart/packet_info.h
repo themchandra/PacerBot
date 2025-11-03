@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Oct-29-2025
+ * @date Nov-02-2025
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -33,21 +33,22 @@ namespace uart {
         ACK_RADXA,        // Confirm receipt from Radxa
     };
 
+    // Sync bytes
+    constexpr uint8_t SYNC_RECV {0x5A};
+    constexpr uint8_t SYNC_SEND {0xA5};
 
     // Max data packet size
-    constexpr size_t DATA_MAX_SIZE {256};
-
+    constexpr size_t DATA_MAX_SIZE {64};
 
     /** @brief Raw data packet structure from reading UART */
     struct DataPacket_raw {
         uint8_t sync {};       // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
         ePacketID id {};       // Refer to ePacketID enum class
-        uint32_t timestamp {}; // millisecs since program start, big enough for ~49.7 days
-        uint8_t length {};     // Max bits length of data: 255 bytes
-        uint8_t data[DATA_MAX_SIZE]; // Data
+        uint8_t length {};     // Max bits length of data 
+        uint8_t data[DATA_MAX_SIZE]; // Possible maximum array size for data
                                      // CRC8 at data[length]
 
-        size_t totalSize() const { return 7 + length + 1; }
+        size_t totalSize() const { return 3 + length + 1; }
     } __attribute__((packed));
 
 
@@ -68,22 +69,19 @@ namespace uart {
         // Getter methods
         uint8_t getSync() const noexcept { return sync_; }
         ePacketID getID() const noexcept { return id_; }
-        uint32_t getTimestamp() const noexcept { return timestamp_; }
         const std::vector<uint8_t> &getData() const noexcept { return data_; }
 
       private:
-        DataPacket(uint8_t sync, ePacketID id, uint32_t timestamp,
+        DataPacket(uint8_t sync, ePacketID id,
                    std::vector<uint8_t> data_payload, uint8_t crc8);
 
         uint8_t sync_ {};       // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
         ePacketID id_ {};       // Refer to ePacketID enum class
-        uint32_t timestamp_ {}; // milliseconds since mcu boot, big enough for ~49.7 days
         std::vector<uint8_t> data_; // Data
         uint8_t crc8_ {};           // CRC8 checksum
 
         uint8_t calculate_crc8() const;
         bool validate_crc() const;
-        static uint32_t getTimeMs();
     };
 
 
@@ -98,11 +96,6 @@ namespace uart {
             int16_t gyro_z {};
         };
     } // namespace recv
-
-
-    // Sync bytes
-    constexpr uint8_t SYNC_RECV {0x5A};
-    constexpr uint8_t SYNC_SEND {0xA5};
 
 } // namespace uart
 

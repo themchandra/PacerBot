@@ -2,35 +2,29 @@
  * @file packet_info.cpp
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Oct-30-2025
+ * @date Nov-02-2025
  */
 
 #include "comm/uart/config.h"
 #include "comm/uart/packet_info.h"
 
-#include <chrono>
 #include <iostream>
 #include <string.h>
 
 namespace uart {
-    // Initialized when program starts
-    const auto start_time = std::chrono::steady_clock::now();
-
     DataPacket::DataPacket(ePacketID id, std::span<const uint8_t> data_payload)
         : sync_(SYNC_RECV),
           id_(id),
-          timestamp_(getTimeMs()),
           data_(data_payload.begin(), data_payload.end())
     {
         crc8_ = calculate_crc8();
     }
 
 
-    DataPacket::DataPacket(uint8_t sync, ePacketID id, uint32_t timestamp,
+    DataPacket::DataPacket(uint8_t sync, ePacketID id,
                            std::vector<uint8_t> data_payload, uint8_t crc8)
         : sync_(sync),
           id_(id),
-          timestamp_(timestamp),
           data_(std::move(data_payload)),
           crc8_(crc8)
     {}
@@ -46,7 +40,6 @@ namespace uart {
         DataPacket_raw *raw_ptr = reinterpret_cast<DataPacket_raw *>(buf);
         raw_ptr->sync           = sync_;
         raw_ptr->id             = id_;
-        raw_ptr->timestamp      = timestamp_;
         raw_ptr->length         = static_cast<uint8_t>(data_.size());
         memcpy(raw_ptr->data, data_.data(), data_.size());
         raw_ptr->data[raw_ptr->length] = crc8_;
@@ -84,7 +77,7 @@ namespace uart {
         uint8_t raw_crc8 {raw_ptr->data[raw_ptr->length]};
 
         // Store data & validate checksum
-        DataPacket packet(raw_ptr->sync, raw_ptr->id, raw_ptr->timestamp, std::move(data),
+        DataPacket packet(raw_ptr->sync, raw_ptr->id, std::move(data),
                           raw_crc8);
         if (!packet.validate_crc()) {
             std::cout << "Invalid checksum\n";
@@ -125,12 +118,6 @@ namespace uart {
         crc8 = CRC8_TABLE[crc8 ^ sync_];
         crc8 = CRC8_TABLE[crc8 ^ static_cast<uint8_t>(id_)];
 
-        // Timestamp
-        crc8 = CRC8_TABLE[crc8 ^ static_cast<uint8_t>(timestamp_ & 0xFF)];
-        crc8 = CRC8_TABLE[crc8 ^ static_cast<uint8_t>((timestamp_ >> 8) & 0xFF)];
-        crc8 = CRC8_TABLE[crc8 ^ static_cast<uint8_t>((timestamp_ >> 16) & 0xFF)];
-        crc8 = CRC8_TABLE[crc8 ^ static_cast<uint8_t>((timestamp_ >> 24) & 0xFF)];
-
         crc8 = CRC8_TABLE[crc8 ^ static_cast<uint8_t>(data_.size())];
 
         // Loop over every byte in data_
@@ -148,13 +135,5 @@ namespace uart {
         return computed_crc8 == crc8_;
     }
 
-
-    uint32_t DataPacket::getTimeMs()
-    {
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed
-            = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time);
-        return static_cast<uint32_t>(elapsed.count());
-    }
 
 } // namespace uart
