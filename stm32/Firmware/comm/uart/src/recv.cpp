@@ -15,16 +15,26 @@ namespace {
     bool isInitialized_ {false};
     UART_HandleTypeDef huart_;
 
+    // Receiving buffers
+    constexpr int RX_BUF_SIZE {512};
+    std::array<uint8_t, RX_BUF_SIZE> rxBuf {};
+
     // Threading
-    std::atomic_bool isRunning_ {false};
+    std::atomic_bool isThreadRunning_ {false};
     osSemaphoreId_t semThreadLoop_;
 
     // Task definition
     osThreadId_t taskHandle_;
     constexpr osThreadAttr_t task_att_ {
         .name       = "recvTask",
+        .attr_bits  = 0,
+        .cb_mem     = nullptr,
+        .cb_size    = 0,
+        .stack_mem  = nullptr,
         .stack_size = 128 * 4,
-        .priority   = (osPriority_t)osPriorityNormal,
+        .priority   = osPriorityNormal,
+        .tz_module  = 0,
+        .reserved   = 0,
     };
 
 
@@ -34,8 +44,10 @@ namespace {
         }
 
 
-        while (isRunning_) {
+        while (isThreadRunning_) {
             // TODO: parse buffer
+            HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+            osDelay(1000);
         }
 
         osSemaphoreRelease(semThreadLoop_);
@@ -64,15 +76,16 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
-        taskHandle_ = osThreadNew(threadLoop, NULL, &task_att_);
-        isRunning_  = true;
+        HAL_UARTEx_ReceiveToIdle_DMA(&huart_, rxBuf.data(), RX_BUF_SIZE);
+        taskHandle_      = osThreadNew(threadLoop, NULL, &task_att_);
+        isThreadRunning_ = true;
     }
 
 
     void stop()
     {
         assert(isInitialized_);
-        isRunning_ = false;
+        isThreadRunning_ = false;
 
         // Wait until loop ends then "join" with other thread
         osSemaphoreAcquire(semThreadLoop_, osWaitForever);
@@ -81,7 +94,7 @@ namespace uart::recv {
     bool isRunning()
     {
         assert(isInitialized_);
-        return isRunning_;
+        return isThreadRunning_;
     }
 
 } // namespace uart::recv
