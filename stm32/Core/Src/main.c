@@ -22,8 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "stdio.h"
-#include "string.h"
+#include "app/app_main.h"
+
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 /* USER CODE END Includes */
 
@@ -421,6 +423,8 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  app_main();
+
   printf("Starting I2C Scan\n");
 
   // Go through all the possible I2C addresses
