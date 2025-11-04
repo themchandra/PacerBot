@@ -21,6 +21,7 @@ extern DMA_HandleTypeDef hdma_usart1_rx;
 extern "C" void app_main(void)
 {
     // initialize other modules and start new threads and stuff
+	// call C++ functions here
     while (true) {
         HAL_UART_Transmit(&huart2, (uint8_t *)"Hello\r\n", 7, 100);
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);

@@ -423,7 +423,10 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  // Firmware code initialization and loop
   app_main();
+
+  // ----- CODE ENDS HERE, NOTHING IS CALLED AFTER THIS LINE -----
 
   printf("Starting I2C Scan\n");
 
