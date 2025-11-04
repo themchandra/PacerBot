@@ -11,12 +11,15 @@
 #include <atomic>
 #include <cassert>
 
+#include <stdio.h>
+#include <string.h>
+
 namespace {
     bool isInitialized_ {false};
     UART_HandleTypeDef huart_;
 
     // Receiving buffers
-    constexpr int RX_BUF_SIZE {512};
+    constexpr int RX_BUF_SIZE {20};
     std::array<uint8_t, RX_BUF_SIZE> rxBuf {};
 
     // Threading
@@ -55,6 +58,16 @@ namespace {
 
 } // namespace
 
+extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
+{
+    if (size) {
+    }
+
+    if (huart == &huart_) {
+        HAL_UART_Transmit(huart, (uint8_t *)"Leave\r\n", 7, 100);
+        HAL_UART_Transmit(&huart_, (uint8_t *)"test0\r\n", 7, 100);
+    }
+}
 
 namespace uart::recv {
     void init(UART_HandleTypeDef *huart)
