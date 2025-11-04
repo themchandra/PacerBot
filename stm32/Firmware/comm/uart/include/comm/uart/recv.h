@@ -2,7 +2,7 @@
  * @file recv.h
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Nov-03-2025
+ * @date Nov-04-2025
  */
 
 #ifndef COMM_UART_RECV_H_
@@ -10,22 +10,19 @@
 
 #include "comm/uart/packet_info.h"
 
-#include <memory>
+#include "stm32f4xx_hal.h"
 
 namespace uart::recv {
-    void init(std::shared_ptr<SerialUART> uartPtr);
+    void init(UART_HandleTypeDef *huart);
     void deinit();
 
     // Thread management
+	/**
+	 * @brief Starts a task for parsing a buffer fed by DMA channel
+	 */
     void start();
     void stop();
     bool isRunning();
-
-    // Queue management
-    std::optional<DataPacket> dequeue();
-    size_t getQueueSize();
-    bool isQueueEmpty();
-    void clearQueue();
 
 } // namespace uart::recv
 

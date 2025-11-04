@@ -2,14 +2,16 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Nov-03-2025
+ * @date Nov-04-2025
  */
 
 #include "app/app_main.h"
+#include "comm/uart/recv.h"
+
 #include "cmsis_os.h"
 #include "main.h"
 
-// External global variables from Core/main.c
+// External global variables from Core/Src/main.c
 extern "C" {
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
