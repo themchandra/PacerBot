@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Nov-04-2025
+ * @date Nov-05-2025
  */
 
 #include "app/app_main.h"
@@ -12,7 +12,7 @@
 #include "main.h"
 
 // External global variables from Core/Src/main.c
-// NOTE: Only pass them as reference through initialization for modules/classes, 
+// NOTE: Only pass them as reference through initialization for modules/classes,
 // 		 save them as a pointer for use.
 extern "C" {
 extern I2C_HandleTypeDef hi2c1;
@@ -32,9 +32,7 @@ extern "C" void app_main(void)
     uart::recv::start();
 
     while (true) {
-        HAL_UART_Transmit(&huart2, (uint8_t *)"Hello\r\n", 7, 100);
+        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
         osDelay(1000);
     }
-
-    return;
 }

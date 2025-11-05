@@ -2,7 +2,7 @@
  * @file recv.h
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Nov-04-2025
+ * @date Nov-05-2025
  */
 
 #ifndef COMM_UART_RECV_H_
@@ -11,6 +11,13 @@
 #include "stm32f4xx_hal.h"
 
 namespace uart::recv {
+	enum class eFlags : uint32_t {
+		CALLBACK = 0x01,
+		CMD,
+		CFG,
+		RADXA,
+	};
+
     void init(UART_HandleTypeDef *huart);
     void deinit();
 
@@ -21,6 +28,14 @@ namespace uart::recv {
     void start();
     void stop();
     bool isRunning();
+
+	// Setters for callbacks
+	/**
+	 * @brief Update parsing index tracking & trigger CALLBACK flag
+	 */
+	void updateBufInd(uint16_t index);
+
+	// Queue management
 
 } // namespace uart::recv
 
