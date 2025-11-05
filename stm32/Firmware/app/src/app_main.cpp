@@ -17,6 +17,7 @@ extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_usart1_rx;
+extern DMA_HandleTypeDef hdma_usart2_rx;
 }
 
 
@@ -26,7 +27,7 @@ extern "C" void app_main(void)
     // call C++ functions here
     uart::recv::init(&huart2);
 
-	uart::recv::start();
+    uart::recv::start();
 
     while (true) {
         HAL_UART_Transmit(&huart2, (uint8_t *)"Hello\r\n", 7, 100);
