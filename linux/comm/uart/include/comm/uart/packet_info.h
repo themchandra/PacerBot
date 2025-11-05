@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-02-2025
+ * @date Nov-05-2025
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -14,37 +14,43 @@
 #include <vector>
 
 namespace uart {
-    /** @brief List of IDs to/from the mcu */
-    enum class ePacketID : uint8_t {
-        // Receiving (STM32 -> Radxa)
-        TELEMETRY,    // Contains sensor (imu, ultrasonic, encoder), pid(s) data
-        STATUS_STM32, // Status of the STM32
-        BATTERY,      // Measured battery voltage
-        ACK_STM32,    // Confirm receipt from STM32
-        DEBUG,        // Debugging log
-
-        // Transmitting (Radxa -> STM32)
-        CMD_MOTOR,        // Motor control
-        CMD_NAV,          // Target speed, turn, start/stop
-        CONFIG_PID_SPEED, // Tune speed PID
-        CONFIG_PID_LANE,  // Tune laning PID
-        CONFIG_SENSOR,    // Configure sensor data rate
-        STATUS_RADXA,     // Status of the Radxa
-        ACK_RADXA,        // Confirm receipt from Radxa
-    };
+    // Max data packet size
+    constexpr size_t DATA_MAX_SIZE {100};
 
     // Sync bytes
     constexpr uint8_t SYNC_RECV {0x5A};
     constexpr uint8_t SYNC_SEND {0xA5};
 
-    // Max data packet size
-    constexpr size_t DATA_MAX_SIZE {64};
+    /** @brief List of IDs to/from the mcu */
+    enum class ePacketID : uint8_t {
+        // Receiving (STM32 -> Radxa)
+        TELEM_IMU,     // IMU data
+        TELEM_ULT,     // Ultrasonic data
+        TELEM_ENC,     // Encoder data
+        TELEM_PID,     // Contains pid data
+        TELEM_BATTERY, // Measured battery voltage
+        STM32_STATUS,  // Status of the STM32
+        STM32_ACK,     // Confirm receipt from STM32
+        STM32_DEBUG,   // Debugging log
+
+        // Transmitting (Radxa -> STM32)
+        CMD_MOTOR,      // Motor control
+        CMD_NAV,        // Target speed, turn, start/stop
+        CONF_PID_SPEED, // Tune speed PID
+        CONF_PID_LANE,  // Tune laning PID
+        CONF_SENSOR,    // Configure sensor data rate
+        RAD_STATUS,     // Status of the Radxa
+        RAD_ACK,        // Confirm receipt from Radxa
+
+        TOTAL,
+    };
+
 
     /** @brief Raw data packet structure from reading UART */
     struct DataPacket_raw {
-        uint8_t sync {};       // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
-        ePacketID id {};       // Refer to ePacketID enum class
-        uint8_t length {};     // Max bits length of data 
+        uint8_t sync {};   // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
+        ePacketID id {};   // Refer to ePacketID enum class
+        uint8_t length {}; // Max bits length of data
         uint8_t data[DATA_MAX_SIZE]; // Possible maximum array size for data
                                      // CRC8 at data[length]
 
@@ -72,11 +78,11 @@ namespace uart {
         const std::vector<uint8_t> &getData() const noexcept { return data_; }
 
       private:
-        DataPacket(uint8_t sync, ePacketID id,
-                   std::vector<uint8_t> data_payload, uint8_t crc8);
+        DataPacket(uint8_t sync, ePacketID id, std::vector<uint8_t> data_payload,
+                   uint8_t crc8);
 
-        uint8_t sync_ {};       // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
-        ePacketID id_ {};       // Refer to ePacketID enum class
+        uint8_t sync_ {}; // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
+        ePacketID id_ {}; // Refer to ePacketID enum class
         std::vector<uint8_t> data_; // Data
         uint8_t crc8_ {};           // CRC8 checksum
 
