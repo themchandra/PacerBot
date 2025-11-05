@@ -74,6 +74,7 @@ namespace {
         case eParseState::SYNC:
             if (byte == uart::SYNC_RECV) {
                 isValid = true;
+                HAL_UART_Transmit(huart_, (uint8_t *)"Sync good!\r\n", 12, 100);
             }
             break;
 
@@ -81,12 +82,14 @@ namespace {
             if (byte >= static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
                 && byte < static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
                 isValid = true;
+                HAL_UART_Transmit(huart_, (uint8_t *)"ID good!\r\n", 10, 100);
             }
             break;
 
         case eParseState::LENGTH:
             if (byte > 0 && byte <= uart::DATA_MAX_SIZE) {
                 isValid = true;
+                HAL_UART_Transmit(huart_, (uint8_t *)"Length good!\r\n", 14, 100);
             }
             break;
 
@@ -99,6 +102,7 @@ namespace {
                                            dataPacket.totalSize() - 1);
             if (byte == calcCRC) {
                 isValid = true;
+                HAL_UART_Transmit(huart_, (uint8_t *)"CRC good!\r\n", 11, 100);
             }
             break;
 
@@ -184,6 +188,7 @@ namespace {
 
                 // Valid and checksum is done, add to freertos queue
                 if (curState == eParseState::CHECKSUM) {
+                    HAL_UART_Transmit(huart_, (uint8_t *)"Good!\r\n", 7, 100);
                 }
             }
 

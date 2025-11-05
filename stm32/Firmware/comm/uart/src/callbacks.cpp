@@ -26,7 +26,6 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t s
 
     if (huart == huart2_) {
 		uart::recv::updateBufInd(size);
-        HAL_UART_Transmit(huart, (uint8_t *)"Leave\r\n", 7, 100);
     }
 }
 
