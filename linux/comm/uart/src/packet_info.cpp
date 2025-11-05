@@ -67,8 +67,9 @@ namespace uart {
 
         // Check raw packet length, +1 for crc8
         size_t expected_length {raw_ptr->totalSize()};
-        if (length < expected_length) {
+        if (length != expected_length) {
             std::cout << "Invalid length\n";
+			std::cout << "Got: " << length << " Expected: " << expected_length << std::endl;
             return std::nullopt;
         }
 
