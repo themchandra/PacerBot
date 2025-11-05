@@ -2,13 +2,16 @@
  * @file manager.h
  * @brief Manages UART communication between Radxa & STM32
  * @author Hayden Mai
- * @date Oct-29-2025
+ * @date Nov-05-2025
  */
 
 #ifndef COMM_UART_MANAGER_H_
 #define COMM_UART_MANAGER_H_
 
 #include <cstdint>
+#include "comm/uart/recv.h"
+#include "comm/uart/send.h"
+#include "comm/uart/packet_info.h"
 
 /*
  * Additional features to add in the future:

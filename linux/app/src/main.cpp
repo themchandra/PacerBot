@@ -3,13 +3,11 @@
 #include "state_machine.h"
 #include <chrono>
 #include <iostream>
+#include <string>
 #include <termios.h>
 #include <thread>
 
 #include "comm/uart/manager.h"
-#include "comm/uart/packet_info.h"
-#include "comm/uart/recv.h"
-
 #include "timing.h"
 
 /**
@@ -71,6 +69,7 @@ return 0;
     std::cout << "Init done!\n";
 
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
+        // RECEIVING
         auto newPacket = uart::recv::dequeue();
 
         if (newPacket.has_value()) {
@@ -87,6 +86,14 @@ return 0;
             std::cout << std::endl;
         }
 
+        // SENDING
+        std::string_view str = "Hello world";
+        auto packet          = uart::DataPacket(
+            uart::ePacketID::RAD_ACK,
+            std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str.data()),
+                                              str.size()));
+		uart::send::enqueue(packet);
+		
         timing::sleepForMs(500);
     }
 

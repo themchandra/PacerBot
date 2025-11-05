@@ -61,8 +61,7 @@ namespace uart {
     /** @brief Data packet structure for UART communication */
     class DataPacket {
       public:
-        // Constructor, meant to be used with storing received packets. Timestamp, sync,
-        // and crc8 will be auto-generated.
+        // Constructor, meant to be used for transmitting packets. Sync and crc8 will be auto-generated.
         DataPacket(ePacketID id, std::span<const uint8_t> data_payload);
 
         // Convert DataPacket to a uint8_t buffer for UART transmission

@@ -2,7 +2,7 @@
  * @file packet_info.cpp
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-02-2025
+ * @date Nov-05-2025
  */
 
 #include "comm/uart/config.h"
@@ -13,7 +13,7 @@
 
 namespace uart {
     DataPacket::DataPacket(ePacketID id, std::span<const uint8_t> data_payload)
-        : sync_(SYNC_RECV),
+        : sync_(SYNC_SEND),
           id_(id),
           data_(data_payload.begin(), data_payload.end())
     {
@@ -60,7 +60,7 @@ namespace uart {
         const DataPacket_raw *raw_ptr = reinterpret_cast<const DataPacket_raw *>(rawData);
 
         // Validate sync byte
-        if (raw_ptr->sync != 0x5A && raw_ptr->sync != 0xA5) {
+        if (raw_ptr->sync != 0x5A) {
             std::cout << "Invalid sync byte\n";
             return std::nullopt;
         }
