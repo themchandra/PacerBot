@@ -2,7 +2,7 @@
  * @file config.h
  * @brief Config constants for UART serial communication
  * @author Hayden Mai
- * @date Nov-03-2025
+ * @date Nov-05-2025
  */
 
 #ifndef COMM_UART_CONFIG_H_
