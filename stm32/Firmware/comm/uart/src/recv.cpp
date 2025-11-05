@@ -6,17 +6,16 @@
  */
 
 #include "cmsis_os.h"
+#include "comm/uart/callbacks.h"
 #include "comm/uart/recv.h"
 
+#include <array>
 #include <atomic>
 #include <cassert>
 
-#include <stdio.h>
-#include <string.h>
-
 namespace {
     bool isInitialized_ {false};
-    UART_HandleTypeDef* huart_;
+    UART_HandleTypeDef *huart_;
 
     // Receiving buffers
     constexpr int RX_BUF_SIZE {20};
@@ -45,7 +44,7 @@ namespace {
     {
         if (argument) {
         }
- 
+
         while (isThreadRunning_) {
             // TODO: parse buffer
             HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
@@ -57,21 +56,13 @@ namespace {
 
 } // namespace
 
-extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
-{
-    if (size) {
-    }
-
-    if (huart == huart_) {
-        HAL_UART_Transmit(huart, (uint8_t *)"Leave\r\n", 7, 100);
-    }
-}
 
 namespace uart::recv {
     void init(UART_HandleTypeDef *huart)
     {
         assert(!isInitialized_);
         huart_         = huart;
+		callbacks::set_huart(callbacks::eUARTPort::UART_2, huart);
         semThreadLoop_ = osSemaphoreNew(1, 0, NULL);
         isInitialized_ = true;
     }

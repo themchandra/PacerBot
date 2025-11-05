@@ -12,6 +12,8 @@
 #include "main.h"
 
 // External global variables from Core/Src/main.c
+// NOTE: Only pass them as reference through initialization for modules/classes, 
+// 		 save them as a pointer for use.
 extern "C" {
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;

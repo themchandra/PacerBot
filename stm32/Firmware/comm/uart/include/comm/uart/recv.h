@@ -8,8 +8,6 @@
 #ifndef COMM_UART_RECV_H_
 #define COMM_UART_RECV_H_
 
-#include "comm/uart/packet_info.h"
-
 #include "stm32f4xx_hal.h"
 
 namespace uart::recv {
@@ -17,9 +15,9 @@ namespace uart::recv {
     void deinit();
 
     // Thread management
-	/**
-	 * @brief Starts a task for parsing a buffer fed by DMA channel
-	 */
+    /**
+     * @brief Starts a task for parsing a buffer fed by DMA channel
+     */
     void start();
     void stop();
     bool isRunning();
