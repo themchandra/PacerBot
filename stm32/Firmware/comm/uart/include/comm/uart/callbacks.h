@@ -12,11 +12,16 @@
 #include <cstdint>
 
 namespace uart::callbacks {
-	enum class eUARTPort : uint8_t {
-		UART_1,
-		UART_2,
-	};
+    enum class eUARTPort : uint8_t {
+        UART_1,
+        UART_2,
+    };
 
+    /**
+     * @brief Assign UART ports for callbacks to compare
+     * @param uartPort Enum corresponding to the UART port
+     * @param huart Pointer of UART initialized by main.c
+     */
     void set_huart(eUARTPort uartPort, UART_HandleTypeDef *huart);
 
 } // namespace uart::callbacks
