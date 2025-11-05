@@ -12,6 +12,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <string.h>
 
 namespace {
     bool isInitialized_ {false};
@@ -58,6 +59,21 @@ namespace {
     eParseState curState {};
     uint8_t curPos {};
 
+    uart::DataPacket_raw sendPacket {};
+
+    void transmitPacket(char *msg)
+    {
+        sendPacket.sync   = uart::SYNC_SEND;
+        sendPacket.id     = uart::ePacketID::TELEM_IMU;
+        sendPacket.length = strlen(msg);
+        memcpy(sendPacket.data, msg, sendPacket.length);
+
+        sendPacket.data[sendPacket.length]
+            = uart::calculate_crc8((uint8_t *)&sendPacket, sendPacket.totalSize() - 1);
+
+        HAL_UART_Transmit(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize(),
+                          HAL_MAX_DELAY);
+    }
 
     /**
      * @brief Validate the current byte based on the state
@@ -74,7 +90,9 @@ namespace {
         case eParseState::SYNC:
             if (byte == uart::SYNC_RECV) {
                 isValid = true;
-                HAL_UART_Transmit(huart_, (uint8_t *)"Sync good!\r\n", 12, 100);
+
+                char msg[] = "Sync good!\r\n";
+                transmitPacket(msg);
             }
             break;
 
@@ -82,14 +100,18 @@ namespace {
             if (byte >= static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
                 && byte < static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
                 isValid = true;
-                HAL_UART_Transmit(huart_, (uint8_t *)"ID good!\r\n", 10, 100);
+
+                char msg[] = "ID good!\r\n";
+                transmitPacket(msg);
             }
             break;
 
         case eParseState::LENGTH:
             if (byte > 0 && byte <= uart::DATA_MAX_SIZE) {
                 isValid = true;
-                HAL_UART_Transmit(huart_, (uint8_t *)"Length good!\r\n", 14, 100);
+
+                char msg[] = "Length good!\r\n";
+                transmitPacket(msg);
             }
             break;
 
@@ -102,7 +124,9 @@ namespace {
                                            dataPacket.totalSize() - 1);
             if (byte == calcCRC) {
                 isValid = true;
-                HAL_UART_Transmit(huart_, (uint8_t *)"CRC good!\r\n", 11, 100);
+
+                char msg[] = "CRC good!\r\n";
+                transmitPacket(msg);
             }
             break;
 
@@ -188,7 +212,8 @@ namespace {
 
                 // Valid and checksum is done, add to freertos queue
                 if (curState == eParseState::CHECKSUM) {
-                    HAL_UART_Transmit(huart_, (uint8_t *)"Good!\r\n", 7, 100);
+                    char msg[] = "Add to queue here!\r\n";
+                    transmitPacket(msg);
                 }
             }
 
