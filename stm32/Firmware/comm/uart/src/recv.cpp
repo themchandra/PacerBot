@@ -7,6 +7,7 @@
 
 #include "cmsis_os.h"
 #include "comm/uart/callbacks.h"
+#include "comm/uart/packet_info.h"
 #include "comm/uart/recv.h"
 
 #include <atomic>
@@ -17,14 +18,12 @@ namespace {
     UART_HandleTypeDef *huart_;
 
     // Receiving buffers
-    constexpr int RX_BUF_SIZE {20};
+    constexpr int RX_BUF_SIZE {512};
     uint8_t rxBuf[RX_BUF_SIZE] {};
 
     // Buffer tracking
-    uint16_t oldIdx {};
     uint16_t curIdx {};
-
-    constexpr int FLAG_TIMEOUT_MS {100};
+    uint16_t newIdx {};
 
     // Threading
     std::atomic_bool isTaskRunning_ {false};
@@ -32,22 +31,113 @@ namespace {
 
     // Task definition
     osThreadId_t taskHandle_;
+    constexpr uint32_t STACK_SIZE_BYTES {512};
     constexpr osThreadAttr_t task_att_ {
         .name       = "recvTask",
         .attr_bits  = 0,
         .cb_mem     = nullptr,
         .cb_size    = 0,
         .stack_mem  = nullptr,
-        .stack_size = 128 * 4,
+        .stack_size = STACK_SIZE_BYTES,
         .priority   = osPriorityNormal,
         .tz_module  = 0,
         .reserved   = 0,
     };
 
+    // Manage packet parsing
+    enum class eParseState : uint8_t {
+        SYNC,
+        ID,
+        LENGTH,
+        DATA,
+        CHECKSUM,
+    };
+
+    // Track parsing state
+    uart::DataPacket_raw dataPacket {};
+    eParseState curState {};
+    uint8_t curPos {};
+    uint8_t totalLen {};
+
+    /**
+     * @brief Validate the current byte based on the state
+     * @param state The current state of parsing in a packet
+     * @param byte The current byte in the data buffer
+     * @return true if valid, false otherwise
+     */
+    bool validateByteState(eParseState state, uint8_t byte)
+    {
+        bool isValid {false};
+
+        switch (state) {
+        case eParseState::SYNC:
+            if (byte == uart::SYNC_RECV) {
+                isValid = true;
+            }
+            break;
+
+        case eParseState::ID:
+            if (byte >= static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
+                && byte < static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
+                isValid = true;
+            }
+            break;
+
+        case eParseState::LENGTH:
+            if (byte > 0 && byte <= uart::DATA_MAX_SIZE) {
+                isValid = true;
+            }
+            break;
+
+        case eParseState::CHECKSUM:
+            uint8_t calcCRC = uart::calculate_crc8(
+                reinterpret_cast<uint8_t *>(&dataPacket), dataPacket.totalSize() - 1);
+            if (byte == calcCRC) {
+                isValid = true;
+            }
+            break;
+
+        default:
+            break;
+        }
+
+        return isValid;
+    }
 
     void parseBuffer()
     {
-        // TODO: parse buffer
+        // Circular DMA: 2 situations
+        // 1: The DMA is ahead
+        // - curIdx <= newIdx, the difference returns the number of bytes we need to parse
+        // 2: DMA looped around
+        // - curIdx > newIdx, the different returns
+        uint16_t newBytes {};
+        if (curIdx <= newIdx) {
+            newBytes = newIdx - curIdx;
+
+        } else {
+            newBytes = RX_BUF_SIZE - curIdx + newIdx;
+        }
+
+        if (newBytes <= 0) {
+            return;
+        }
+
+        // IMPLEMENTATION
+        // Perform a byte by byte buffer parsing
+        // - Track which where in the packet via curState
+        // - For sync, id, length, & checksum, verify if its valid before copying
+        // - If valid, process it through another function, reset
+        // - If not valid, reset
+        // - For reset, 3 variables: curState, curPos, totalLen
+        // - Once each byte is parsed, ensure curIdx is incremented properly, curState &
+        // curPos is updated
+        for (uint16_t curByte {}; curByte < newBytes; curByte++) {
+            if (validateByteState(curState, rxBuf[curIdx]) == true) {
+
+            } else {
+            }
+        }
     }
 
 
@@ -56,6 +146,9 @@ namespace {
         if (argument) {
         }
 
+        constexpr int FLAG_TIMEOUT_MS {100};
+
+        // Either waits for flags or timeout to trigger, then parse.
         while (isTaskRunning_) {
             uint32_t flags
                 = osThreadFlagsWait(static_cast<uint32_t>(uart::recv::eFlags::CALLBACK),
@@ -63,10 +156,9 @@ namespace {
 
             // If timed out, update DMA position (via polling)
             if (flags != static_cast<uint32_t>(uart::recv::eFlags::CALLBACK)) {
-				oldIdx = curIdx;
 
-				// Calculates how many bytes have been received in the DMA buffer
-				curIdx = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
+                // Calculates how many bytes have been received in the DMA buffer
+                newIdx = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
             }
 
             parseBuffer();
@@ -113,6 +205,7 @@ namespace uart::recv {
 
         // Wait until loop ends then "join" with other thread
         osSemaphoreAcquire(semTaskLoop_, osWaitForever);
+        HAL_UART_DMAStop(huart_);
     }
 
 
@@ -126,11 +219,7 @@ namespace uart::recv {
     void updateBufInd(uint16_t index)
     {
         assert(isInitialized_);
-
-        // Save previous index value
-        oldIdx = curIdx;
-        curIdx = index;
-
+        newIdx = index;
         osThreadFlagsSet(taskHandle_, static_cast<uint32_t>(eFlags::CALLBACK));
     }
 

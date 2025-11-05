@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-03-2025
+ * @date Nov-05-2025
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -14,11 +14,11 @@
 
 namespace uart {
     // Max data packet size
-    constexpr size_t DATA_MAX_SIZE {255};
+    constexpr size_t DATA_MAX_SIZE {100};
 
     // Sync bytes
-    constexpr uint8_t SYNC_RECV {0x5A};
-    constexpr uint8_t SYNC_SEND {0xA5};
+    constexpr uint8_t SYNC_RECV {0xA5};
+    constexpr uint8_t SYNC_SEND {0x5A};
 
 
     /** @brief List of IDs to/from the mcu */
@@ -41,6 +41,8 @@ namespace uart {
         CONF_SENSOR,    // Configure sensor data rate
         RAD_STATUS,     // Status of the Radxa
         RAD_ACK,        // Confirm receipt from Radxa
+
+		TOTAL,
     };
 
 
@@ -48,7 +50,7 @@ namespace uart {
     struct DataPacket_raw {
         uint8_t sync {};   // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
         ePacketID id {};   // Refer to ePacketID enum class
-        uint8_t length {}; // Max bits length of data: 255 bytes
+        uint8_t length {}; // Max bits length of data array
         uint8_t data[DATA_MAX_SIZE]; // Data
                                      // CRC8 at data[length]
 
