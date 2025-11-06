@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Nov-05-2025
+ * @date Nov-06-2025
  */
 
 #include "app/app_main.h"
@@ -27,7 +27,7 @@ extern "C" void app_main(void)
 {
     // initialize other modules and start new threads and stuff
     // call C++ functions here
-    uart::recv::init(&huart1);
+    uart::recv::init(&huart2);
 
     uart::recv::start();
 

@@ -75,11 +75,6 @@ namespace {
             = uart::calculate_crc8((uint8_t *)&sendPacket, sendPacket.totalSize() - 1);
 
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
-
-        // dataPacket.sync = uart::SYNC_SEND;
-        // dataPacket.data[dataPacket.length] = uart::calculate_crc8((uint8_t
-        // *)&dataPacket, dataPacket.totalSize() - 1);
-        // HAL_UART_Transmit_DMA(huart_, (uint8_t *)&dataPacket, dataPacket.totalSize());
     }
 
     /**
