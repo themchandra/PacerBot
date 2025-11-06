@@ -62,15 +62,18 @@ namespace {
 
     void transmitPacket()
     {
-        uart::DataPacket_raw sendPacket {};
+        // NOTE: Need to be static since once this function exits,
+        // 		 the stack becomes junk and DMA will send junk
+        static uart::DataPacket_raw sendPacket {};
 
         sendPacket.sync   = uart::SYNC_SEND;
         sendPacket.id     = uart::ePacketID::TELEM_IMU;
         sendPacket.length = dataPacket.length;
-		std::memcpy(sendPacket.data, dataPacket.data, sendPacket.length);
+        std::memcpy(sendPacket.data, dataPacket.data, sendPacket.length);
 
         sendPacket.data[sendPacket.length]
             = uart::calculate_crc8((uint8_t *)&sendPacket, sendPacket.totalSize() - 1);
+
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
 
         // dataPacket.sync = uart::SYNC_SEND;
