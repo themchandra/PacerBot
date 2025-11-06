@@ -72,7 +72,7 @@ namespace {
             msg = "ID!";
             break;
         case eParseState::DATA:
-            msg = "DATA!";
+            msg = "STM32 - Data received, added to queue!";
             break;
         case eParseState::LENGTH:
             msg = "LENGTH!";
@@ -110,8 +110,6 @@ namespace {
         case eParseState::SYNC:
             if (byte == uart::SYNC_RECV) {
                 isValid = true;
-
-                transmitPacket(eParseState::SYNC);
             }
             break;
 
@@ -119,16 +117,12 @@ namespace {
             if (byte >= static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
                 && byte < static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
                 isValid = true;
-
-                transmitPacket(eParseState::ID);
             }
             break;
 
         case eParseState::LENGTH:
             if (byte > 0 && byte <= uart::DATA_MAX_SIZE) {
                 isValid = true;
-
-                transmitPacket(eParseState::LENGTH);
             }
             break;
 
@@ -141,8 +135,6 @@ namespace {
                                            dataPacket.totalSize() - 1);
             if (byte == calcCRC) {
                 isValid = true;
-
-                transmitPacket(eParseState::CHECKSUM);
             }
             break;
 
