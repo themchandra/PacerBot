@@ -12,7 +12,7 @@
 
 #include <atomic>
 #include <cassert>
-#include <string.h>
+#include <cstring>
 
 namespace {
     bool isInitialized_ {false};
@@ -59,40 +59,24 @@ namespace {
     eParseState curState {};
     uint8_t curPos {};
 
-    uart::DataPacket_raw sendPacket {};
 
-    void transmitPacket(eParseState state)
+    void transmitPacket()
     {
-        const char *msg;
-        switch (state) {
-        case eParseState::SYNC:
-            msg = "SYNC!";
-            break;
-        case eParseState::ID:
-            msg = "ID!";
-            break;
-        case eParseState::DATA:
-            msg = "STM32 - Data received, added to queue!";
-            break;
-        case eParseState::LENGTH:
-            msg = "LENGTH!";
-            break;
-        case eParseState::CHECKSUM:
-            msg = "CHECKSUM!";
-            break;
-        default:
-            msg = "";
-            break;
-        }
+        uart::DataPacket_raw sendPacket {};
+
         sendPacket.sync   = uart::SYNC_SEND;
         sendPacket.id     = uart::ePacketID::TELEM_IMU;
-        sendPacket.length = strlen(msg);
-        memcpy(sendPacket.data, msg, sendPacket.length);
+        sendPacket.length = dataPacket.length;
+		std::memcpy(sendPacket.data, dataPacket.data, sendPacket.length);
 
         sendPacket.data[sendPacket.length]
             = uart::calculate_crc8((uint8_t *)&sendPacket, sendPacket.totalSize() - 1);
-
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
+
+        // dataPacket.sync = uart::SYNC_SEND;
+        // dataPacket.data[dataPacket.length] = uart::calculate_crc8((uint8_t
+        // *)&dataPacket, dataPacket.totalSize() - 1);
+        // HAL_UART_Transmit_DMA(huart_, (uint8_t *)&dataPacket, dataPacket.totalSize());
     }
 
     /**
@@ -220,7 +204,7 @@ namespace {
 
                 // Valid and checksum is done, add to freertos queue
                 if (curState == eParseState::CHECKSUM) {
-                    transmitPacket(eParseState::DATA);
+                    transmitPacket();
                 }
             }
 
