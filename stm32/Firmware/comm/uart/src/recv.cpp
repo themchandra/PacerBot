@@ -71,8 +71,7 @@ namespace {
         sendPacket.data[sendPacket.length]
             = uart::calculate_crc8((uint8_t *)&sendPacket, sendPacket.totalSize() - 1);
 
-        HAL_UART_Transmit(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize(),
-                          HAL_MAX_DELAY);
+        HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
     }
 
     /**
