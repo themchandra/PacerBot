@@ -103,7 +103,7 @@ void read_accel_data() {
 	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
 }
 
-/* void read_gyro_data() {
+ void read_gyro_data() {
 	uint8_t data[6];
 	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, GYRO_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
 	int16_t raw_gx =    (int16_t)((data[0] << 8) | data[1]);
@@ -116,7 +116,7 @@ void read_accel_data() {
 
 
 	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
-} */
+} 
 
 /**
   * @brief  The application entry point.
@@ -422,12 +422,7 @@ void StartDefaultTask(void *argument)
   read_WHO_AM_I_reg();
   while(1){
 
-	  //read_gyro_data();
-	  //osDelay(1000);
-	  //read_accel_data();
-	  //vTaskDelay(200);
     read_accel_data();
-    //printf("hello\n");
     vTaskDelay(500);
 
   }
