@@ -2,7 +2,7 @@
  * @file recv.cpp
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Nov-05-2025
+ * @date Nov-06-2025
  */
 
 #include "cmsis_os.h"
@@ -61,11 +61,32 @@ namespace {
 
     uart::DataPacket_raw sendPacket {};
 
-    void transmitPacket(char *msg, size_t len)
+    void transmitPacket(eParseState state)
     {
+        const char *msg;
+        switch (state) {
+        case eParseState::SYNC:
+            msg = "SYNC!";
+            break;
+        case eParseState::ID:
+            msg = "ID!";
+            break;
+        case eParseState::DATA:
+            msg = "DATA!";
+            break;
+        case eParseState::LENGTH:
+            msg = "LENGTH!";
+            break;
+        case eParseState::CHECKSUM:
+            msg = "CHECKSUM!";
+            break;
+        default:
+            msg = "";
+            break;
+        }
         sendPacket.sync   = uart::SYNC_SEND;
         sendPacket.id     = uart::ePacketID::TELEM_IMU;
-        sendPacket.length = len;
+        sendPacket.length = strlen(msg);
         memcpy(sendPacket.data, msg, sendPacket.length);
 
         sendPacket.data[sendPacket.length]
@@ -90,8 +111,7 @@ namespace {
             if (byte == uart::SYNC_RECV) {
                 isValid = true;
 
-                char msg[] = "Sync good!\r\n";
-                transmitPacket(msg, strlen(msg));
+                transmitPacket(eParseState::SYNC);
             }
             break;
 
@@ -100,8 +120,7 @@ namespace {
                 && byte < static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
                 isValid = true;
 
-                char msg[] = "ID good!\r\n";
-                transmitPacket(msg, strlen(msg));
+                transmitPacket(eParseState::ID);
             }
             break;
 
@@ -109,8 +128,7 @@ namespace {
             if (byte > 0 && byte <= uart::DATA_MAX_SIZE) {
                 isValid = true;
 
-                char msg[] = "Length good!\r\n";
-                transmitPacket(msg, strlen(msg));
+                transmitPacket(eParseState::LENGTH);
             }
             break;
 
@@ -124,8 +142,7 @@ namespace {
             if (byte == calcCRC) {
                 isValid = true;
 
-                char msg[] = "CRC good!\r\n";
-                transmitPacket(msg, strlen(msg));
+                transmitPacket(eParseState::CHECKSUM);
             }
             break;
 
@@ -211,8 +228,7 @@ namespace {
 
                 // Valid and checksum is done, add to freertos queue
                 if (curState == eParseState::CHECKSUM) {
-                    char msg[] = "Add to queue here!\r\n";
-                    transmitPacket(msg, strlen(msg));
+                    transmitPacket(eParseState::DATA);
                 }
             }
 
