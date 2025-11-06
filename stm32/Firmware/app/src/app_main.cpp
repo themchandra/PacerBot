@@ -33,6 +33,8 @@ extern "C" void app_main(void)
 
     while (true) {
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        osDelay(1000);
+        osDelay(150);
+        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+        osDelay(2000);
     }
 }

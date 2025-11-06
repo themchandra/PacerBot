@@ -218,13 +218,13 @@ namespace {
         if (argument) {
         }
 
-        //constexpr int FLAG_TIMEOUT_MS {100};
+        constexpr int FLAG_TIMEOUT_MS {100};
 
         // Either waits for flags or timeout to trigger, then parse.
         while (isTaskRunning_) {
             uint32_t flags
                 = osThreadFlagsWait(static_cast<uint32_t>(uart::recv::eFlags::CALLBACK),
-                                    osFlagsWaitAny, osWaitForever);
+                                    osFlagsWaitAny, FLAG_TIMEOUT_MS);
 
             // If timed out, update DMA position (via polling)
             if (flags != static_cast<uint32_t>(uart::recv::eFlags::CALLBACK)) {
