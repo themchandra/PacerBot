@@ -32,7 +32,7 @@ namespace uart {
 
     size_t DataPacket::serialize(uint8_t *buf, size_t buf_size) const
     {
-        size_t packet_size {sizeof(DataPacket_raw) + data_.size() + 1};
+        size_t packet_size {3 + data_.size() + 1};
         if (buf_size < packet_size) {
             return 0;
         }

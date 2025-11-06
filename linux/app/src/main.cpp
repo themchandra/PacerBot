@@ -94,7 +94,7 @@ return 0;
                                               str.size()));
 		uart::send::enqueue(packet);
 		
-        timing::sleepForMs(500);
+        timing::sleepForMs(1000);
     }
 
     timing::deinit();
