@@ -13,20 +13,15 @@
 
 namespace uart {
     DataPacket::DataPacket(ePacketID id, std::span<const uint8_t> data_payload)
-        : sync_(SYNC_SEND),
-          id_(id),
-          data_(data_payload.begin(), data_payload.end())
+        : sync_(SYNC_SEND), id_(id), data_(data_payload.begin(), data_payload.end())
     {
         crc8_ = calculate_crc8();
     }
 
 
-    DataPacket::DataPacket(uint8_t sync, ePacketID id,
-                           std::vector<uint8_t> data_payload, uint8_t crc8)
-        : sync_(sync),
-          id_(id),
-          data_(std::move(data_payload)),
-          crc8_(crc8)
+    DataPacket::DataPacket(uint8_t sync, ePacketID id, std::vector<uint8_t> data_payload,
+                           uint8_t crc8)
+        : sync_(sync), id_(id), data_(std::move(data_payload)), crc8_(crc8)
     {}
 
 
@@ -69,7 +64,8 @@ namespace uart {
         size_t expected_length {raw_ptr->totalSize()};
         if (length != expected_length) {
             std::cout << "Invalid length\n";
-			std::cout << "Got: " << length << " Expected: " << expected_length << std::endl;
+            std::cout << "Got: " << length << " Expected: " << expected_length
+                      << std::endl;
             return std::nullopt;
         }
 
@@ -78,10 +74,12 @@ namespace uart {
         uint8_t raw_crc8 {raw_ptr->data[raw_ptr->length]};
 
         // Store data & validate checksum
-        DataPacket packet(raw_ptr->sync, raw_ptr->id, std::move(data),
-                          raw_crc8);
+        DataPacket packet(raw_ptr->sync, raw_ptr->id, std::move(data), raw_crc8);
         if (!packet.validate_crc()) {
             std::cout << "Invalid checksum\n";
+            std::cout << "Got: " << static_cast<int>(raw_crc8)
+                      << " Expected: " << static_cast<int>(packet.calculate_crc8())
+                      << std::endl;
             return std::nullopt;
         }
 
