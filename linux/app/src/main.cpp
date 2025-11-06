@@ -67,6 +67,7 @@ return 0;
     timing::init();
 
     std::cout << "Init done!\n";
+    int counter {};
 
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
         // RECEIVING
@@ -86,23 +87,16 @@ return 0;
             std::cout << std::endl;
         }
 
+        auto newPacket2 = uart::recv::dequeue();
+
         // SENDING
-        std::string_view str = "Hello world";
-        auto packet          = uart::DataPacket(
+        std::string str = "Hello world " + std::to_string(counter++);
+
+        auto packet = uart::DataPacket(
             uart::ePacketID::RAD_ACK,
             std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str.data()),
-                                              str.size()));
+                                     str.size()));
         uart::send::enqueue(packet);
-
-        timing::sleepForMs(500);
-
-        std::string_view str2 = "Goodbye!!! 1920u294";
-        auto packet2          = uart::DataPacket(
-            uart::ePacketID::RAD_ACK,
-            std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str2.data()),
-                                              str2.size()));
-        uart::send::enqueue(packet2);
-
 
         timing::sleepForMs(1000);
     }
