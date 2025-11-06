@@ -61,11 +61,11 @@ namespace {
 
     uart::DataPacket_raw sendPacket {};
 
-    void transmitPacket(char *msg)
+    void transmitPacket(char *msg, size_t len)
     {
         sendPacket.sync   = uart::SYNC_SEND;
         sendPacket.id     = uart::ePacketID::TELEM_IMU;
-        sendPacket.length = strlen(msg);
+        sendPacket.length = len;
         memcpy(sendPacket.data, msg, sendPacket.length);
 
         sendPacket.data[sendPacket.length]
@@ -91,7 +91,7 @@ namespace {
                 isValid = true;
 
                 char msg[] = "Sync good!\r\n";
-                transmitPacket(msg);
+                transmitPacket(msg, strlen(msg));
             }
             break;
 
@@ -101,7 +101,7 @@ namespace {
                 isValid = true;
 
                 char msg[] = "ID good!\r\n";
-                transmitPacket(msg);
+                transmitPacket(msg, strlen(msg));
             }
             break;
 
@@ -110,7 +110,7 @@ namespace {
                 isValid = true;
 
                 char msg[] = "Length good!\r\n";
-                transmitPacket(msg);
+                transmitPacket(msg, strlen(msg));
             }
             break;
 
@@ -125,7 +125,7 @@ namespace {
                 isValid = true;
 
                 char msg[] = "CRC good!\r\n";
-                transmitPacket(msg);
+                transmitPacket(msg, strlen(msg));
             }
             break;
 
@@ -212,7 +212,7 @@ namespace {
                 // Valid and checksum is done, add to freertos queue
                 if (curState == eParseState::CHECKSUM) {
                     char msg[] = "Add to queue here!\r\n";
-                    transmitPacket(msg);
+                    transmitPacket(msg, strlen(msg));
                 }
             }
 
