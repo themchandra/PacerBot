@@ -8,10 +8,10 @@
 #include "comm/uart/config.h"
 #include "comm/uart/packet_info.h"
 
+#include <cstddef> // for size_t
+#include <cstdint> // for uint8_t
+#include <iomanip> // for std::hex and std::setw
 #include <iostream>
-#include <iomanip>  // for std::hex and std::setw
-#include <cstddef>  // for size_t
-#include <cstdint>  // for uint8_t
 
 #include <string.h>
 
@@ -60,6 +60,14 @@ namespace uart {
                       << std::setw(2)      // pad to width 2
                       << std::setfill('0') // pad with '0'
                       << static_cast<int>(rawData[i]) << " ";
+        }
+		std::cout << std::endl;
+
+        for (size_t i = 0; i < length; ++i) {
+            std::cout << std::hex          // print in hexadecimal
+                      << std::setw(2)      // pad to width 2
+                      << std::setfill('0') // pad with '0'
+                      << static_cast<int>(rawData[i]);
         }
         std::cout << std::dec << std::endl; // reset to decimal output
         // Reinterpret bytes as a DataPacket_raw struct

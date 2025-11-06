@@ -23,7 +23,7 @@ namespace uart::config {
     constexpr size_t MAX_RX_QUEUE_SIZE {100};
 
     // Max packet size is 3 (header) + 255 (max data) + 1 (crc8)
-    constexpr size_t READ_BUF_SIZE {259};
+    constexpr size_t READ_BUF_SIZE {100};
 
 } // namespace uart::config
 
