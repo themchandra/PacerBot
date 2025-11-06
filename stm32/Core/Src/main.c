@@ -23,7 +23,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
+#include "stm32f411xe.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_tim.h"
 #include "string.h"
+#include <stdint.h>
 #include <unistd.h>
 /* USER CODE END Includes */
 
@@ -51,6 +56,8 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim1;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
@@ -58,7 +65,7 @@ UART_HandleTypeDef huart2;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -71,6 +78,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM1_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -79,9 +87,6 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
 void read_WHO_AM_I_reg(){
 	uint8_t buff[1] = {0};
 	buff[0] = WHO_AM_I;
@@ -118,6 +123,64 @@ void read_accel_data() {
 	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
 } 
 
+void delay(uint16_t time) {
+  __HAL_TIM_SET_COUNTER(&htim1, __COUNTER__);
+  while (__HAL_TIM_GET_COUNTER(&htim1) < time);
+
+}
+
+uint32_t IC_Val1 = 0;
+uint32_t IC_Val2 = 0;
+uint32_t Difference = 0;
+uint32_t Is_First_Captured = 0; // is it the first value captured?
+uint8_t Distance = 0;
+
+#define TRIG_PIN GPIO_PIN_10
+#define TRIG_PORT GPIOB
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
+
+
+  if (Is_First_Captured == 0) {
+    IC_Val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // read the first value
+    Is_First_Captured = 1;
+    // change the polarity to falling edge
+    __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
+  }
+
+  else if (Is_First_Captured == 1){ // if the first is already captured
+    IC_Val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    __HAL_TIM_SET_COUNTER(htim, 0);
+
+    if (IC_Val2 > IC_Val1){
+      Difference = IC_Val2 - IC_Val1;
+    }
+
+    else if (IC_Val1 > IC_Val2){
+      Difference = (0xffff - IC_Val1) + IC_Val2;
+    }
+
+    Distance = Difference * .034/2;
+    Is_First_Captured = 0; // set it back to false
+
+    // set polarity to rising edge
+    __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
+    __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_CC1);
+  }
+
+}
+
+void HCSR04_Read(void) {
+  HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
+
+  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_CC1);
+
+}
+
+
+/* USER CODE END 0 */
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -147,12 +210,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-  MX_I2C1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   setvbuf(stdout, NULL, _IONBF, 0);
   printf("BOOT: hello on USART2\n");
+
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
  
   /* USER CODE END 2 */
 
@@ -199,6 +265,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    
   }
   /* USER CODE END 3 */
 }
@@ -280,6 +347,65 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_IC_InitTypeDef sConfigIC = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 84-1;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_IC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 0;
+  if (HAL_TIM_IC_ConfigChannel(&htim1, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
 
 }
 
@@ -370,6 +496,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
@@ -382,6 +511,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -419,11 +555,14 @@ void StartDefaultTask(void *argument)
   printf("\n");
 
 
-  read_WHO_AM_I_reg();
+  //read_WHO_AM_I_reg();
   while(1){
+    HCSR04_Read();
+    printf("distance: %d\n", Distance);
+    vTaskDelay(200);
 
-    read_accel_data();
-    vTaskDelay(500);
+    //read_accel_data();
+    //vTaskDelay(500);
 
   }
   /* Infinite loop */
