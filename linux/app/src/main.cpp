@@ -92,8 +92,18 @@ return 0;
             uart::ePacketID::RAD_ACK,
             std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str.data()),
                                               str.size()));
-		uart::send::enqueue(packet);
-		
+        uart::send::enqueue(packet);
+
+        timing::sleepForMs(500);
+
+        std::string_view str2 = "Goodbye!!! 1920u294";
+        auto packet2          = uart::DataPacket(
+            uart::ePacketID::RAD_ACK,
+            std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str2.data()),
+                                              str2.size()));
+        uart::send::enqueue(packet2);
+
+
         timing::sleepForMs(1000);
     }
 
