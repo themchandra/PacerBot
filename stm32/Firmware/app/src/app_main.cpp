@@ -27,7 +27,7 @@ extern "C" void app_main(void)
 {
     // initialize other modules and start new threads and stuff
     // call C++ functions here
-    uart::recv::init(&huart2);
+    uart::recv::init(&huart1);
 
     uart::recv::start();
 

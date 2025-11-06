@@ -2,7 +2,7 @@
  * @file callbacks.cpp
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Nov-05-2025
+ * @date Nov-06-2025
  */
 
 #include "comm/uart/callbacks.h"
@@ -22,10 +22,10 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t s
     }
 
     if (huart == huart1_) {
+		uart::recv::updateBufInd(size);
     }
 
     if (huart == huart2_) {
-		uart::recv::updateBufInd(size);
     }
 }
 
