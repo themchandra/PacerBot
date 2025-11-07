@@ -43,6 +43,9 @@ namespace {
     // Message queue for parsed packets
     osMessageQueueId_t packetQueue_;
 
+    // Event flag(s)
+    osEventFlagsId_t eventFlag_;
+
     // Threading
     std::atomic_bool isTaskRunning_ {false};
     osSemaphoreId_t semTaskLoop_;
@@ -80,7 +83,34 @@ namespace {
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
     }
 
-    void addToQueue() {}
+    void addToQueue()
+    {
+        osMessageQueuePut(packetQueue_, &dataPacket_, 0, 0);
+
+        uint32_t flag {};
+        switch (dataPacket_.id) {
+        case uart::ePacketID::CMD_MOTOR:
+        case uart::ePacketID::CMD_NAV:
+            flag = static_cast<uint32_t>(uart::recv::eFlags::CMD);
+            break;
+
+        case uart::ePacketID::CONF_PID_SPEED:
+        case uart::ePacketID::CONF_PID_LANE:
+        case uart::ePacketID::CONF_SENSOR:
+            flag = static_cast<uint32_t>(uart::recv::eFlags::CONF);
+            break;
+
+        case uart::ePacketID::RAD_STATUS:
+        case uart::ePacketID::RAD_ACK:
+            flag = static_cast<uint32_t>(uart::recv::eFlags::RADXA);
+            break;
+
+        default:
+            break;
+        }
+
+        osEventFlagsSet(eventFlag_, flag);
+    }
 
     /**
      * @brief Validate the current byte based on the state
@@ -211,6 +241,7 @@ namespace {
                 // Valid and checksum is done, add to freertos queue
                 if (curState_ == eParseState::CHECKSUM) {
                     // TODO: Make add queue function
+                    addToQueue();
                     transmitPacket();
                 }
             }
@@ -259,6 +290,7 @@ namespace uart::recv {
         huart_ = huart;
         callbacks::set_huart(callbacks::eUARTPort::UART_1, huart);
         packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        eventFlag_     = osEventFlagsNew(NULL);
         semTaskLoop_   = osSemaphoreNew(1, 0, NULL);
         isInitialized_ = true;
     }
@@ -268,6 +300,7 @@ namespace uart::recv {
     {
         assert(isInitialized_);
         osSemaphoreDelete(semTaskLoop_);
+		osEventFlagsDelete(eventFlag_);
         osMessageQueueDelete(packetQueue_);
         isInitialized_ = false;
     }

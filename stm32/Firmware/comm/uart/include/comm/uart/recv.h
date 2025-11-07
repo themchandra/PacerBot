@@ -11,13 +11,13 @@
 #include "stm32f4xx_hal.h"
 
 namespace uart::recv {
-	// Queue size limit
-	constexpr int MAX_QUEUE_SIZE {5};
+    // Queue size limit
+    constexpr int MAX_QUEUE_SIZE {5};
 
     enum class eFlags : uint32_t {
         CALLBACK = (1 << 0),
         CMD      = (1 << 1),
-        CFG      = (1 << 2),
+        CONF     = (1 << 2),
         RADXA    = (1 << 3),
         // Limit is (1 << 32)
     };
@@ -38,7 +38,11 @@ namespace uart::recv {
      */
     void updateBufInd(uint16_t index);
 
-    // Queue management
+    // Publisher Queue management
+    osEventFlagsId_t getEventFlag();
+    bool dequeue(DataPacket_raw *packet);
+	bool isQueueEmpty();
+	uint32_t getQueueCount();
 
 } // namespace uart::recv
 
