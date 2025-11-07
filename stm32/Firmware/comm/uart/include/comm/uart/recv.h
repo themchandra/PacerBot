@@ -1,6 +1,6 @@
 /**
  * @file recv.h
- * @brief Handles incoming packets from UART
+ * @brief Handles incoming packets from UART using DMA IDLE
  * @author Hayden Mai
  * @date Nov-06-2025
  */
@@ -10,8 +10,8 @@
 
 #include "comm/uart/packet_info.h"
 
-#include "stm32f4xx_hal.h"
 #include "cmsis_os.h"
+#include "stm32f4xx_hal.h"
 
 namespace uart::recv {
     // Queue size limit
@@ -44,8 +44,8 @@ namespace uart::recv {
     // Publisher Queue management
     osEventFlagsId_t getEventFlag();
     bool dequeue(DataPacket_raw *packet);
-	bool isQueueEmpty();
-	uint32_t getQueueCount();
+    bool isQueueEmpty();
+    uint32_t getQueueCount();
 
 } // namespace uart::recv
 

@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-05-2025
+ * @date Nov-06-2025
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -58,17 +58,6 @@ namespace uart {
     } __attribute__((packed));
 
 
-    namespace recv {
-        /** @brief IMU data structure from the telemetry packet */
-        struct IMU_data {
-            int16_t accel_x {};
-            int16_t accel_y {};
-            int16_t accel_z {};
-            int16_t gyro_x {};
-            int16_t gyro_y {};
-            int16_t gyro_z {};
-        };
-    } // namespace recv
 
 
     /** @brief Calculate CRC8 checksum */
