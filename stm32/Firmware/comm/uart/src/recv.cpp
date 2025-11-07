@@ -7,6 +7,7 @@
 
 #include "comm/uart/callbacks.h"
 #include "comm/uart/recv.h"
+#include "comm/uart/send.h"
 
 #include <atomic>
 #include <cassert>
@@ -67,6 +68,7 @@ namespace {
     };
 
 
+	/*
     void transmitPacket()
     {
         // NOTE: Need to be static since once this function exits,
@@ -83,6 +85,7 @@ namespace {
 
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
     }
+		*/
 
     void addToQueue()
     {
@@ -245,7 +248,7 @@ namespace {
                 if (curState_ == eParseState::CHECKSUM) {
                     // TODO: Make add queue function
                     addToQueue();
-                    transmitPacket();
+                    //transmitPacket();
                 }
             }
 

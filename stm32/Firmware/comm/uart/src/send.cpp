@@ -147,10 +147,21 @@ namespace uart::send {
     {
         assert(isInitialized_);
 
+		if (msg == nullptr) {
+			return;
+		}
+
+		// Cut off string if too long
+		constexpr uint8_t MAX_MSG_SIZE {DATA_MAX_SIZE - 1};
+		uint8_t len = strlen(msg);
+		if (len > MAX_MSG_SIZE) {
+			len = MAX_MSG_SIZE;
+		}
+
         DataPacket_raw packet {};
         packet.sync   = SYNC_SEND;
         packet.id     = ePacketID::STM32_DEBUG;
-        packet.length = strlen(msg);
+        packet.length = len;
         std::memcpy(packet.data, msg, packet.length);
         packet.data[packet.length]
             = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);

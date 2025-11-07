@@ -41,7 +41,7 @@ namespace uart::send {
     // void enqueue_PID(PID_data data);
     // void enqueue_status(Status_data data);
     void enqueue_ack();
-    void enqueue_debug(const char *msg); // String limit of 100
+    void enqueue_debug(const char *msg); // String limit of 99
 
     // Queue management
     bool isQueueEmpty();
