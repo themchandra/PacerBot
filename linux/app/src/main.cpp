@@ -71,24 +71,24 @@ return 0;
 
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
         // RECEIVING
-        auto newPacket = uart::recv::dequeue();
+        while (uart::recv::isQueueEmpty() == false) {
+            auto newPacket = uart::recv::dequeue();
 
-        if (newPacket.has_value()) {
-            std::cout << "\nData received!! Printing packet...\n";
-            auto packet = newPacket.value();
+            if (newPacket.has_value()) {
+                std::cout << "\nData received!! Printing packet...\n";
+                auto packet = newPacket.value();
 
-            // TODO: Print from packet class
-            const std::vector<uint8_t> &data = packet.getData();
+                // TODO: Print from packet class
+                const std::vector<uint8_t> &data = packet.getData();
 
-            std::cout << "Packet data: ";
-            for (uint8_t byte : data) {
-                std::cout << static_cast<char>(byte);
+                std::cout << "Packet data: ";
+                for (uint8_t byte : data) {
+                    std::cout << static_cast<char>(byte);
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
-
-        auto newPacket2 = uart::recv::dequeue();
-
+       
         // SENDING
         std::string str = "Hello world " + std::to_string(counter++);
 
