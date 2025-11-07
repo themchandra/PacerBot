@@ -5,9 +5,7 @@
  * @date Nov-06-2025
  */
 
-#include "cmsis_os.h"
 #include "comm/uart/callbacks.h"
-#include "comm/uart/packet_info.h"
 #include "comm/uart/recv.h"
 
 #include <atomic>
@@ -88,6 +86,8 @@ namespace {
 
     void addToQueue()
     {
+		// TODO: Error Checking #4
+		// TODO: If full, dequeue one and put
         osMessageQueuePut(packetQueue_, &dataPacket_, 0, 0);
 
         uint32_t flag {};
@@ -291,6 +291,7 @@ namespace uart::recv {
         assert(!isInitialized_);
         huart_ = huart;
         callbacks::set_huart(callbacks::eUARTPort::UART_1, huart);
+		// TODO: Error Checking #1
         packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
         eventFlag_     = osEventFlagsNew(NULL);
         semTaskLoop_   = osSemaphoreNew(1, 0, NULL);
@@ -311,6 +312,7 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
+		// TODO: Error Checking #2
         HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
         taskHandle_    = osThreadNew(threadLoop, NULL, &task_att_);
         isTaskRunning_ = true;
@@ -353,8 +355,9 @@ namespace uart::recv {
     bool dequeue(DataPacket_raw *packet)
 	{
 		assert(isInitialized_);
+		// TODO: Error Checking #3
 		osMessageQueueGet(packetQueue_, packet, NULL, 0);
-		// TODO: Check if empty or not
+		return true;
 	}
 
 

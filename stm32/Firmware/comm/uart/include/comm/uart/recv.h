@@ -8,7 +8,10 @@
 #ifndef COMM_UART_RECV_H_
 #define COMM_UART_RECV_H_
 
+#include "comm/uart/packet_info.h"
+
 #include "stm32f4xx_hal.h"
+#include "cmsis_os.h"
 
 namespace uart::recv {
     // Queue size limit
