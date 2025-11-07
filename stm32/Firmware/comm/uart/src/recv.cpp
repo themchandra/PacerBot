@@ -27,7 +27,7 @@ namespace {
     };
 
     constexpr uint32_t FLAG_TIMEOUT_MS {100};
-	constexpr uint32_t QUEUE_TIMEOUT_MS {100}; 
+    constexpr uint32_t QUEUE_TIMEOUT_MS {100};
 
     // Receiving buffers
     constexpr int RX_BUF_SIZE {512};
@@ -68,7 +68,6 @@ namespace {
     };
 
 
-	/*
     void transmitPacket()
     {
         // NOTE: Need to be static since once this function exits,
@@ -85,12 +84,11 @@ namespace {
 
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
     }
-		*/
 
     void addToQueue()
     {
-		// TODO: Error Checking #4
-		// TODO: If full, dequeue one and put
+        // TODO: Error Checking #4
+        // TODO: If full, dequeue one and put
         osMessageQueuePut(packetQueue_, &dataPacket_, 0, 0);
 
         uint32_t flag {};
@@ -248,7 +246,7 @@ namespace {
                 if (curState_ == eParseState::CHECKSUM) {
                     // TODO: Make add queue function
                     addToQueue();
-                    //transmitPacket();
+                    transmitPacket();
                 }
             }
 
@@ -294,7 +292,7 @@ namespace uart::recv {
         assert(!isInitialized_);
         huart_ = huart;
         callbacks::set_huart(callbacks::eUARTPort::UART_1, huart);
-		// TODO: Error Checking #1
+        // TODO: Error Checking #1
         packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
         eventFlag_     = osEventFlagsNew(NULL);
         semTaskLoop_   = osSemaphoreNew(1, 0, NULL);
@@ -306,7 +304,7 @@ namespace uart::recv {
     {
         assert(isInitialized_);
         osSemaphoreDelete(semTaskLoop_);
-		osEventFlagsDelete(eventFlag_);
+        osEventFlagsDelete(eventFlag_);
         osMessageQueueDelete(packetQueue_);
         isInitialized_ = false;
     }
@@ -315,7 +313,7 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
-		// TODO: Error Checking #2
+        // TODO: Error Checking #2
         HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
         taskHandle_    = osThreadNew(threadLoop, NULL, &task_att_);
         isTaskRunning_ = true;
@@ -349,36 +347,36 @@ namespace uart::recv {
 
 
     osEventFlagsId_t getEventFlag()
-	{
-		assert(isInitialized_);
-		return eventFlag_;
-	}
+    {
+        assert(isInitialized_);
+        return eventFlag_;
+    }
 
 
     bool dequeue(DataPacket_raw *packet)
-	{
-		assert(isInitialized_);
-		// TODO: Error Checking #3
-		osMessageQueueGet(packetQueue_, packet, NULL, 0);
-		return true;
-	}
+    {
+        assert(isInitialized_);
+        // TODO: Error Checking #3
+        osMessageQueueGet(packetQueue_, packet, NULL, 0);
+        return true;
+    }
 
 
-	bool isQueueEmpty()
-	{
-		assert(isInitialized_);
-		if (osMessageQueueGetCount(packetQueue_) == 0) {
-			return true;
-		}
-		return false;
-	}
+    bool isQueueEmpty()
+    {
+        assert(isInitialized_);
+        if (osMessageQueueGetCount(packetQueue_) == 0) {
+            return true;
+        }
+        return false;
+    }
 
 
-	uint32_t getQueueCount()
-	{
-		assert(isInitialized_);
-		return osMessageQueueGetCount(packetQueue_);
-	}
+    uint32_t getQueueCount()
+    {
+        assert(isInitialized_);
+        return osMessageQueueGetCount(packetQueue_);
+    }
 
 
 } // namespace uart::recv
