@@ -14,7 +14,7 @@
 
 namespace uart::config {
     // Serial port settings
-    const std::string UART_DEVICE {"/dev/ttyUSB0"};
+    const std::string UART_DEVICE {"/dev/ttyS2"};
     constexpr int BAUDRATE {B115200};
     constexpr int TIMEOUT_SEC {1};
 
