@@ -53,9 +53,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE Core/Src/retarget.c)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-	hal
 	app
-	comm_uart
 )
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,-u,_printf_float)
 add_compile_options(-Wall -Werror -Wpedantic -Wextra -fno-exceptions -fno-rtti)

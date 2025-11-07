@@ -18,13 +18,30 @@ namespace {
     bool isInitialized_ {false};
     UART_HandleTypeDef *huart_;
 
+    // Manage packet parsing
+    enum class eParseState : uint8_t {
+        SYNC,
+        ID,
+        LENGTH,
+        DATA,
+        CHECKSUM,
+    };
+
     // Receiving buffers
     constexpr int RX_BUF_SIZE {512};
-    uint8_t rxBuf[RX_BUF_SIZE] {};
+    uint8_t rxBuf_[RX_BUF_SIZE] {};
 
     // Buffer tracking
-    uint16_t curIdx {};
-    uint16_t newIdx {};
+    uint16_t curIdx_ {};
+    uint16_t newIdx_ {};
+
+    // Track parsing state
+    uart::DataPacket_raw dataPacket_ {};
+    eParseState curState_ {};
+    uint8_t curPos_ {};
+
+    // Message queue for parsed packets
+    osMessageQueueId_t packetQueue_;
 
     // Threading
     std::atomic_bool isTaskRunning_ {false};
@@ -45,20 +62,6 @@ namespace {
         .reserved   = 0,
     };
 
-    // Manage packet parsing
-    enum class eParseState : uint8_t {
-        SYNC,
-        ID,
-        LENGTH,
-        DATA,
-        CHECKSUM,
-    };
-
-    // Track parsing state
-    uart::DataPacket_raw dataPacket {};
-    eParseState curState {};
-    uint8_t curPos {};
-
 
     void transmitPacket()
     {
@@ -68,14 +71,16 @@ namespace {
 
         sendPacket.sync   = uart::SYNC_SEND;
         sendPacket.id     = uart::ePacketID::TELEM_IMU;
-        sendPacket.length = dataPacket.length;
-        std::memcpy(sendPacket.data, dataPacket.data, sendPacket.length);
+        sendPacket.length = dataPacket_.length;
+        std::memcpy(sendPacket.data, dataPacket_.data, sendPacket.length);
 
         sendPacket.data[sendPacket.length]
             = uart::calculate_crc8((uint8_t *)&sendPacket, sendPacket.totalSize() - 1);
 
         HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
     }
+
+    void addToQueue() {}
 
     /**
      * @brief Validate the current byte based on the state
@@ -113,8 +118,8 @@ namespace {
             break;
 
         case eParseState::CHECKSUM:
-            calcCRC = uart::calculate_crc8(reinterpret_cast<uint8_t *>(&dataPacket),
-                                           dataPacket.totalSize() - 1);
+            calcCRC = uart::calculate_crc8(reinterpret_cast<uint8_t *>(&dataPacket_),
+                                           dataPacket_.totalSize() - 1);
             if (byte == calcCRC) {
                 isValid = true;
             }
@@ -134,32 +139,35 @@ namespace {
     void updateState(bool isByteValid)
     {
         if (isByteValid) {
-            switch (curState) {
+            switch (curState_) {
             case eParseState::SYNC:
             case eParseState::ID:
             case eParseState::LENGTH:
-                curState = static_cast<eParseState>((static_cast<uint8_t>(curState) + 1));
-                curPos++;
+                curState_
+                    = static_cast<eParseState>((static_cast<uint8_t>(curState_) + 1));
+                curPos_++;
                 break;
 
             case eParseState::DATA:
-                if (curPos - 3 == dataPacket.length - 1) {
-                    curState = eParseState::CHECKSUM;
+                // If the current index position is the byte before checksum
+                // sync, id, length not included
+                if (curPos_ - 3 == dataPacket_.length - 1) {
+                    curState_ = eParseState::CHECKSUM;
                 }
-                curPos++;
+                curPos_++;
                 break;
 
             case eParseState::CHECKSUM:
-                curState = eParseState::SYNC;
-                curPos   = 0;
+                curState_ = eParseState::SYNC;
+                curPos_   = 0;
 
             default:
                 break;
             }
 
         } else {
-            curState = eParseState::SYNC;
-            curPos   = 0;
+            curState_ = eParseState::SYNC;
+            curPos_   = 0;
         }
     }
 
@@ -172,11 +180,11 @@ namespace {
         // 2: DMA looped around
         // - curIdx > newIdx, the different returns
         uint16_t newBytes {};
-        if (curIdx <= newIdx) {
-            newBytes = newIdx - curIdx;
+        if (curIdx_ <= newIdx_) {
+            newBytes = newIdx_ - curIdx_;
 
         } else {
-            newBytes = RX_BUF_SIZE - curIdx + newIdx;
+            newBytes = RX_BUF_SIZE - curIdx_ + newIdx_;
         }
 
         if (newBytes <= 0) {
@@ -193,22 +201,23 @@ namespace {
         // - Once each byte is parsed, ensure curIdx is incremented properly, curState &
         // 	 curPos is updated
         for (uint16_t curByte {}; curByte < newBytes; curByte++) {
-            bool isByteValid {validateByteState(curState, rxBuf[curIdx])};
+            bool isByteValid {validateByteState(curState_, rxBuf_[curIdx_])};
 
             if (isByteValid == true) {
                 // Copy data from receiving buffer
-                uint8_t *dataPacket_ptr = reinterpret_cast<uint8_t *>(&dataPacket);
-                dataPacket_ptr[curPos]  = rxBuf[curIdx];
+                uint8_t *dataPacket_ptr = reinterpret_cast<uint8_t *>(&dataPacket_);
+                dataPacket_ptr[curPos_] = rxBuf_[curIdx_];
 
                 // Valid and checksum is done, add to freertos queue
-                if (curState == eParseState::CHECKSUM) {
+                if (curState_ == eParseState::CHECKSUM) {
+                    // TODO: Make add queue function
                     transmitPacket();
                 }
             }
 
             // Increment things
-            updateState(isByteValid);            // Packet state
-            curIdx = (curIdx + 1) % RX_BUF_SIZE; // Receiving buffer
+            updateState(isByteValid);              // Packet state
+            curIdx_ = (curIdx_ + 1) % RX_BUF_SIZE; // Receiving buffer
         }
     }
 
@@ -230,7 +239,7 @@ namespace {
             if (flags != static_cast<uint32_t>(uart::recv::eFlags::CALLBACK)) {
 
                 // Calculates how many bytes have been received in the DMA buffer
-                newIdx = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
+                newIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
             }
 
             parseBuffer();
@@ -249,6 +258,7 @@ namespace uart::recv {
         assert(!isInitialized_);
         huart_ = huart;
         callbacks::set_huart(callbacks::eUARTPort::UART_1, huart);
+        packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
         semTaskLoop_   = osSemaphoreNew(1, 0, NULL);
         isInitialized_ = true;
     }
@@ -257,6 +267,8 @@ namespace uart::recv {
     void deinit()
     {
         assert(isInitialized_);
+        osSemaphoreDelete(semTaskLoop_);
+        osMessageQueueDelete(packetQueue_);
         isInitialized_ = false;
     }
 
@@ -264,7 +276,7 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
-        HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf, RX_BUF_SIZE);
+        HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
         taskHandle_    = osThreadNew(threadLoop, NULL, &task_att_);
         isTaskRunning_ = true;
     }
@@ -291,7 +303,7 @@ namespace uart::recv {
     void updateBufInd(uint16_t index)
     {
         assert(isInitialized_);
-        newIdx = index;
+        newIdx_ = index;
         osThreadFlagsSet(taskHandle_, static_cast<uint32_t>(eFlags::CALLBACK));
     }
 
