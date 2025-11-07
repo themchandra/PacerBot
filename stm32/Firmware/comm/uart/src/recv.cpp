@@ -27,6 +27,9 @@ namespace {
         CHECKSUM,
     };
 
+    constexpr uint32_t FLAG_TIMEOUT_MS {100};
+	constexpr uint32_t QUEUE_TIMEOUT_MS {100}; 
+
     // Receiving buffers
     constexpr int RX_BUF_SIZE {512};
     uint8_t rxBuf_[RX_BUF_SIZE] {};
@@ -258,7 +261,6 @@ namespace {
         if (argument) {
         }
 
-        constexpr int FLAG_TIMEOUT_MS {100};
 
         // Either waits for flags or timeout to trigger, then parse.
         while (isTaskRunning_) {
@@ -339,5 +341,38 @@ namespace uart::recv {
         newIdx_ = index;
         osThreadFlagsSet(taskHandle_, static_cast<uint32_t>(eFlags::CALLBACK));
     }
+
+
+    osEventFlagsId_t getEventFlag()
+	{
+		assert(isInitialized_);
+		return eventFlag_;
+	}
+
+
+    bool dequeue(DataPacket_raw *packet)
+	{
+		assert(isInitialized_);
+		osMessageQueueGet(packetQueue_, packet, NULL, 0);
+		// TODO: Check if empty or not
+	}
+
+
+	bool isQueueEmpty()
+	{
+		assert(isInitialized_);
+		if (osMessageQueueGetCount(packetQueue_) == 0) {
+			return true;
+		}
+		return false;
+	}
+
+
+	uint32_t getQueueCount()
+	{
+		assert(isInitialized_);
+		return osMessageQueueGetCount(packetQueue_);
+	}
+
 
 } // namespace uart::recv
