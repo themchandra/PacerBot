@@ -13,6 +13,8 @@
 
 void test()
 {
+    std::cout << "Test thread!\n";
+
     int counter {};
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
         // SENDING
