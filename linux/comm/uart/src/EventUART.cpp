@@ -46,6 +46,7 @@ namespace uart {
         eEvent newEvent = event_;
         if (ack_count_ >= num_subscribers_) {
             event_ = eEvent::NONE;
+			ack_count_ = 0;
         }
 
         return newEvent;
