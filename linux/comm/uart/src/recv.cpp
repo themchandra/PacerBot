@@ -72,7 +72,6 @@ namespace {
                 event = uart::eEvent::NONE;
                 break;
             }
-			std::cout << "Got packet!\n";
             eventFlag_.notify(event);
         }
     }
