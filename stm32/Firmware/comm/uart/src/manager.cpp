@@ -6,8 +6,6 @@
  */
 
 #include "comm/uart/manager.h"
-#include "comm/uart/recv.h"
-#include "comm/uart/send.h"
 
 #include <atomic>
 #include <cassert>

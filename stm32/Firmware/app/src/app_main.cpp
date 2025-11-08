@@ -7,7 +7,6 @@
 
 #include "app/app_main.h"
 #include "comm/uart/manager.h"
-#include "comm/uart/send.h"
 
 #include "cmsis_os.h"
 #include "main.h"

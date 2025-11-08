@@ -9,6 +9,8 @@
 #define COMM_UART_MANAGER_H_
 
 #include "stm32f4xx_hal.h"
+#include "comm/uart/recv.h"
+#include "comm/uart/send.h"
 
 /*
  * Additional features to add in the future:
