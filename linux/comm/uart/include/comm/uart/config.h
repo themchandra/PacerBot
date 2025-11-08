@@ -2,7 +2,7 @@
  * @file config.h
  * @brief Config constants for UART serial communication
  * @author Hayden Mai
- * @date Nov-06-2025
+ * @date Nov-07-2025
  */
 
 #ifndef COMM_UART_CONFIG_H_
@@ -16,9 +16,9 @@ namespace uart::config {
     // Serial port settings
     const std::string UART_DEVICE {"/dev/ttyS2"};
     constexpr int BAUDRATE {B115200};
-    constexpr int TIMEOUT_SEC {1};
+    constexpr int TIMEOUT_SEC {10};
 
-	// Queue sizes
+    // Queue sizes
     constexpr size_t MAX_TX_QUEUE_SIZE {100};
     constexpr size_t MAX_RX_QUEUE_SIZE {100};
 
