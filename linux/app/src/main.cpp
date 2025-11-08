@@ -18,6 +18,7 @@ void test()
     int counter {};
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
         // SENDING
+        std::cout << "Sending...\n";
         std::string str = "Hello world " + std::to_string(counter++);
 
         auto packet = uart::DataPacket(
@@ -47,6 +48,7 @@ int main()
 
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
         // RECEIVING
+        std::cout << "Receiving...\n";
         eventFlag.wait();
         while (uart::recv::isQueueEmpty() == false) {
             auto newPacket = uart::recv::dequeue();
