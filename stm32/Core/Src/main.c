@@ -39,12 +39,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define IMU_ADDRESS 0x68
-#define WHO_AM_I 0x75
-#define ACCEL_CONFIG 0x1C
-#define ACCEL_XOUT_H 0x3B
-#define ACCEL_YOUT_H 0x3D
-#define GYRO_XOUT_H 0x43
 
 /* USER CODE END PD */
 
@@ -65,7 +59,7 @@ UART_HandleTypeDef huart2;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -87,97 +81,6 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void read_WHO_AM_I_reg(){
-	uint8_t buff[1] = {0};
-	buff[0] = WHO_AM_I;
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY);
-	printf("%x\n", buff[0]);
-}
-
-void read_accel_data() {
-	uint8_t data[6];
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
-	int16_t raw_ax =    (int16_t)((data[0] << 8) | data[1]);
-	int16_t raw_ay =    (int16_t)((data[2] << 8) | data[3]);
-	int16_t raw_az =    (int16_t)((data[4] << 8) | data[5]);
-
-	float ax = raw_ax * 0.00006103515;
-	float ay = raw_ay * 0.00006103515;
-	float az = raw_az * 0.00006103515;
-
-	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
-}
-
- void read_gyro_data() {
-	uint8_t data[6];
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, GYRO_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
-	int16_t raw_gx =    (int16_t)((data[0] << 8) | data[1]);
-	int16_t raw_gy =    (int16_t)((data[2] << 8) | data[3]);
-	int16_t raw_gz =    (int16_t)((data[4] << 8) | data[5]);
-
-	float gx = raw_gx * 0.00763358778;
-	float gy = raw_gy * 0.00763358778;
-	float gz = raw_gz * 0.00763358778;
-
-
-	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
-} 
-
-void delay(uint16_t time) {
-  __HAL_TIM_SET_COUNTER(&htim1, __COUNTER__);
-  while (__HAL_TIM_GET_COUNTER(&htim1) < time);
-
-}
-
-uint32_t IC_Val1 = 0;
-uint32_t IC_Val2 = 0;
-uint32_t Difference = 0;
-uint32_t Is_First_Captured = 0; // is it the first value captured?
-uint8_t Distance = 0;
-
-#define TRIG_PIN GPIO_PIN_10
-#define TRIG_PORT GPIOB
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
-
-
-  if (Is_First_Captured == 0) {
-    IC_Val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // read the first value
-    Is_First_Captured = 1;
-    // change the polarity to falling edge
-    __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_FALLING);
-  }
-
-  else if (Is_First_Captured == 1){ // if the first is already captured
-    IC_Val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-    __HAL_TIM_SET_COUNTER(htim, 0);
-
-    if (IC_Val2 > IC_Val1){
-      Difference = IC_Val2 - IC_Val1;
-    }
-
-    else if (IC_Val1 > IC_Val2){
-      Difference = (0xffff - IC_Val1) + IC_Val2;
-    }
-
-    Distance = Difference * .034/2;
-    Is_First_Captured = 0; // set it back to false
-
-    // set polarity to rising edge
-    __HAL_TIM_SET_CAPTUREPOLARITY(htim, TIM_CHANNEL_1, TIM_INPUTCHANNELPOLARITY_RISING);
-    __HAL_TIM_DISABLE_IT(&htim1, TIM_IT_CC1);
-  }
-
-}
-
-void HCSR04_Read(void) {
-  HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
-
-  __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_CC1);
-
-}
-
 
 /* USER CODE END 0 */
 
@@ -538,31 +441,13 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  printf("Starting I2C Scan\n");
-
-  // Go through all the possible I2C addresses
-  for (uint8_t i = 0; i < 128; i++) {
-	  if (HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i << 1), 3, 5) == HAL_OK)
-		  printf("%2x", i);
-	  else
-		  printf("-- ");
-
-	  // new line every 16 addresses
-	  if (i > 0 && (i + 1) % 16 == 0)
-		  printf("\n");
-		 }
-
-  printf("\n");
-
-
+ 
   //read_WHO_AM_I_reg();
   while(1){
     HCSR04_Read();
     printf("distance: %d\n", Distance);
-    vTaskDelay(200);
-
     //read_accel_data();
-    //vTaskDelay(500);
+    vTaskDelay(200);
 
   }
   /* Infinite loop */
