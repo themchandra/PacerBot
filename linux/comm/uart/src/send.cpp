@@ -2,7 +2,7 @@
  * @file send.cpp
  * @brief Handles data transmission via UART
  * @author Hayden Mai
- * @date Oct-17-2025
+ * @date Nov-07-2025
  */
 
 #include "comm/uart/config.h"
@@ -14,7 +14,9 @@
 #include <optional>
 #include <queue>
 #include <thread>
+#include <semaphore>
 
+// TODO: Semaphores for loop
 namespace {
     bool isInitialized_ {false};
 
@@ -28,6 +30,7 @@ namespace {
     std::atomic_bool isThreadRunning_ {false};
     std::thread thread_;
     std::mutex queue_mtx_;
+	std::counting_semaphore<uart::config::MAX_TX_QUEUE_SIZE> queue_sem_(0);
 
 
     void serialAndSend()
@@ -50,6 +53,7 @@ namespace {
             // - If not, serialize the first item in queue
             // 		- Make sure data serialization is valid
             //		- Send data via uart
+			queue_sem_.acquire();
             std::lock_guard<std::mutex> lock(queue_mtx_);
             if (!queue_.empty()) {
                 serialAndSend();
@@ -111,6 +115,7 @@ namespace uart::send {
         assert(isInitialized_);
         std::lock_guard<std::mutex> lock(queue_mtx_);
         queue_.push(std::move(packet));
+		queue_sem_.release();
     }
 
 
