@@ -1,3 +1,4 @@
+/*
 #ifndef ULTRASONIC_H_
 #define ULTRASONIC_H_
 
@@ -25,3 +26,4 @@ void HCSR04_Read(void);
 
 
  #endif
+ */

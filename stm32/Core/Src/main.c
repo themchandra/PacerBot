@@ -30,6 +30,7 @@
 #include "string.h"
 #include <stdint.h>
 #include <unistd.h>
+#include "app/app_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -441,15 +442,8 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  app_main();
  
-  //read_WHO_AM_I_reg();
-  while(1){
-    HCSR04_Read();
-    printf("distance: %d\n", Distance);
-    //read_accel_data();
-    vTaskDelay(200);
-
-  }
   /* Infinite loop */
   for(;;)
   {
