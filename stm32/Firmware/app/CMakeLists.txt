@@ -5,8 +5,12 @@
 file(GLOB MY_SOURCES "src/*.cpp")
 add_library(app STATIC ${MY_SOURCES})
 
-# Make use of the STM32 library
-target_link_libraries(app PRIVATE stm32cubemx)
+# Make use of libraries
+target_link_libraries(app 
+	PRIVATE stm32cubemx
+	PRIVATE comm_uart
+	PRIVATE hal
+)
 
 # Expose its local include directory for "app/*.h"
 target_include_directories(app PUBLIC include)
