@@ -2,13 +2,12 @@
  * @file manager.h
  * @brief Manages UART communication between Radxa & STM32
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date Dec-12-2025
  */
 
 #ifndef COMM_UART_MANAGER_H_
 #define COMM_UART_MANAGER_H_
 
-#include "stm32f4xx_hal.h"
 #include "comm/uart/recv.h"
 #include "comm/uart/send.h"
 
@@ -26,6 +25,11 @@
  * functions respectively.
  */
 namespace uart::manager {
+    enum class eUARTInstance : uint8_t {
+        UART_1,
+        UART_2,
+    };
+
     enum class eRunStatus {
         RUNNING,
         RECV_STOPPED,
@@ -33,7 +37,7 @@ namespace uart::manager {
         BOTH_STOPPED,
     };
 
-    void init(UART_HandleTypeDef *huart);
+    void init(UART_HandleTypeDef *huart, eUARTInstance instance);
     void deinit();
 
     // Threads management

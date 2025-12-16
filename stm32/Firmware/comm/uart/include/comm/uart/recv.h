@@ -2,28 +2,18 @@
  * @file recv.h
  * @brief Handles incoming packets from UART using DMA IDLE
  * @author Hayden Mai
- * @date Nov-06-2025
+ * @date Dec-16-2025
  */
 
 #ifndef COMM_UART_RECV_H_
 #define COMM_UART_RECV_H_
 
 #include "comm/uart/packet_info.h"
-
-#include "cmsis_os.h"
 #include "stm32f4xx_hal.h"
 
 namespace uart::recv {
     // Queue size limit
     constexpr int MAX_QUEUE_SIZE {5};
-
-    enum class eFlags : uint32_t {
-        CALLBACK = (1 << 0),
-        CMD      = (1 << 1),
-        CONF     = (1 << 2),
-        RADXA    = (1 << 3),
-        // Limit is (1 << 32)
-    };
 
     void init(UART_HandleTypeDef *huart);
     void deinit();
@@ -42,8 +32,7 @@ namespace uart::recv {
     void updateBufInd(uint16_t index);
 
     // Publisher Queue management
-    osEventFlagsId_t getEventFlag();
-    bool dequeue(DataPacket_raw *packet);
+    bool dequeue(DataPacket_raw *packet, uint32_t timeout_ms);
     bool isQueueEmpty();
     uint32_t getQueueCount();
 

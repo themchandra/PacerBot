@@ -2,27 +2,21 @@
  * @file callbacks.h
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Nov-04-2025
+ * @date Dec-13-2025
  */
 
 #ifndef UART_CALLBACKS_H_
 #define UART_CALLBACKS_H_
 
-#include "stm32f4xx_hal.h"
-#include <cstdint>
+#include "comm/uart/manager.h"
 
 namespace uart::callbacks {
-    enum class eUARTPort : uint8_t {
-        UART_1,
-        UART_2,
-    };
-
     /**
      * @brief Assign UART ports for callbacks to compare
-     * @param uartPort Enum corresponding to the UART port
      * @param huart Pointer of UART initialized by main.c
+     * @param instance Enum corresponding to the UART port
      */
-    void set_huart(eUARTPort uartPort, UART_HandleTypeDef *huart);
+    void set_huart(UART_HandleTypeDef *huart, manager::eUARTInstance instance);
 
 } // namespace uart::callbacks
 

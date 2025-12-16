@@ -2,10 +2,11 @@
  * @file uart_comm.cpp
  * @brief Manages UART communication between Radxa & STM32
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date Dec-13-2025
  */
 
 #include "comm/uart/manager.h"
+#include "comm/uart/callbacks.h"
 
 #include <atomic>
 #include <cassert>
@@ -13,16 +14,16 @@
 #include <queue>
 #include <thread>
 
-
 namespace {
     bool isInitialized_ {false};
 } // namespace
 
 
 namespace uart::manager {
-    void init(UART_HandleTypeDef *huart)
+    void init(UART_HandleTypeDef *huart, eUARTInstance instance)
     {
         assert(!isInitialized_);
+        callbacks::set_huart(huart, instance);
         send::init(huart);
         recv::init(huart);
         isInitialized_ = true;

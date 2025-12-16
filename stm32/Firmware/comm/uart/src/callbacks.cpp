@@ -2,12 +2,11 @@
  * @file callbacks.cpp
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Nov-06-2025
+ * @date Dec-13-2025
  */
 
 #include "comm/uart/callbacks.h"
 #include "comm/uart/recv.h"
-
 
 namespace {
     // TODO: If this does grow, put into an array
@@ -31,14 +30,14 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t s
 
 
 namespace uart::callbacks {
-    void set_huart(eUARTPort uartPort, UART_HandleTypeDef *huart)
+    void set_huart(UART_HandleTypeDef *huart, manager::eUARTInstance instance)
     {
-        switch (uartPort) {
-        case eUARTPort::UART_1:
+        switch (instance) {
+        case manager::eUARTInstance::UART_1:
             huart1_ = huart;
             break;
 
-        case eUARTPort::UART_2:
+        case manager::eUARTInstance::UART_2:
             huart2_ = huart;
             break;
 

@@ -2,14 +2,13 @@
  * @file send.h
  * @brief Handles data transmission via UART DMA
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date Dec-16-2025
  */
 
 #ifndef COMM_UART_SEND_H_
 #define COMM_UART_SEND_H_
 
 #include "comm/uart/packet_info.h"
-
 #include "stm32f4xx_hal.h"
 
 namespace uart::send {

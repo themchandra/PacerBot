@@ -2,15 +2,15 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date Dec-16-2025
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
 #define COMM_UART_PACKET_INFO_H_
 
 #include <array>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace uart {
     // Max data packet size
@@ -34,7 +34,7 @@ namespace uart {
         STM32_DEBUG,   // Debugging log
 
         // Transmitting (Radxa -> STM32)
-        CMD_MOTOR,      // Motor control
+        CMD_MOTOR,      // Servo control
         CMD_NAV,        // Target speed, turn, start/stop
         CONF_PID_SPEED, // Tune speed PID
         CONF_PID_LANE,  // Tune laning PID
@@ -42,7 +42,7 @@ namespace uart {
         RAD_STATUS,     // Status of the Radxa
         RAD_ACK,        // Confirm receipt from Radxa
 
-		TOTAL,
+        TOTAL,
     };
 
 
@@ -52,7 +52,7 @@ namespace uart {
         ePacketID id {};   // Refer to ePacketID enum class
         uint8_t length {}; // Max bits length of data array
         uint8_t data[DATA_MAX_SIZE] {}; // Data
-                                     // CRC8 at data[length]
+                                        // CRC8 at data[length]
 
         size_t totalSize() const { return 3 + length + 1; }
     } __attribute__((packed));
@@ -60,7 +60,6 @@ namespace uart {
 
     /** @brief Calculate CRC8 checksum */
     uint8_t calculate_crc8(uint8_t *data, uint16_t length);
-
 } // namespace uart
 
 #endif
