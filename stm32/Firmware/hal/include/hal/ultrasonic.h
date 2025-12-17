@@ -1,29 +1,35 @@
-/*
 #ifndef ULTRASONIC_H_
 #define ULTRASONIC_H_
 
-#include "main.h"
-#include "cmsis_os.h"
-
-#include "stdio.h"
-#include "stm32f411xe.h"
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_gpio.h"
-#include "stm32f4xx_hal_tim.h"
-#include "string.h"
-#include <stdint.h>
-#include <sys/_intsup.h>
-#include <unistd.h>
+#include <cstdint>
 
-const expr int TRIG_PIN = GPIO_PIN_10;
-const expr int TRIG_PORT = GPIOB;
+class Ultrasonic {
+  public:
+    Ultrasonic(TIM_HandleTypeDef *handle, uint32_t channel, GPIO_TypeDef *trig_port,
+               uint16_t trig_pin);
 
-void delay(uint16_t time);
+    void delay(uint16_t time);
+    // Generates a 10 µs trigger pulse on the TRIG pin to start one ultrasonic
+    // measurement.
+    void trigger();
+    void handle_capture_callback();
+    float get_distance_cm() const;
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);
+    static Ultrasonic *instance;
 
-void HCSR04_Read(void);
+  private:
+    TIM_HandleTypeDef *htim_;
+    uint32_t channel_;
+    GPIO_TypeDef *trig_port_;
+    uint16_t trig_pin_;
+    uint32_t ic_val1_    = 0;
+    uint32_t ic_val2_    = 0;
+    uint32_t diff_       = 0;
+    bool first_captured_ = false; // true after a rising edge captured
+    float distance_cm_   = 0.0f;
 
-
- #endif
- */
+    // constants
+    static constexpr float SPEED_OF_SOUND = 0.034f;
+};
+#endif

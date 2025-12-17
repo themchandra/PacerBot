@@ -2,7 +2,7 @@
  * @file timing.cpp
  * @brief Manage time related processes
  * @author Hayden Mai
- * @date Oct-31-2025
+ * @date Nov-13-2025
  */
 
 #define _POSIX_C_SOURCE 200809L
@@ -16,7 +16,7 @@
 namespace {
     bool isInitialized_ {false};
 }
-
+// hi
 
 namespace timing {
     void init(void)
