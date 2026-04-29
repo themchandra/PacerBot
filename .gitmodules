@@ -1,0 +1,3 @@
+[submodule "linux/SemiAutonomousLaneKeepingSystem"]
+	path = linux/SemiAutonomousLaneKeepingSystem
+	url = git@github.com:themchandra/SemiAutonomousLaneKeepingSystem.git
