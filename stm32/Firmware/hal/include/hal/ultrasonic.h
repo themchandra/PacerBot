@@ -23,11 +23,11 @@ class Ultrasonic {
     uint32_t channel_;
     GPIO_TypeDef *trig_port_;
     uint16_t trig_pin_;
-    uint32_t ic_val1_    = 0;
-    uint32_t ic_val2_    = 0;
-    uint32_t diff_       = 0;
-    bool first_captured_ = false; // true after a rising edge captured
-    float distance_cm_   = 0.0f;
+    uint32_t echo_rising_ticks_  = 0;
+    uint32_t echo_falling_ticks_ = 0;
+    uint32_t echo_pulse_ticks_   = 0;
+    bool first_captured_         = false; // true after a rising edge captured
+    float distance_cm_           = 0.0f;
 
     // constants
     static constexpr float SPEED_OF_SOUND = 0.034f;

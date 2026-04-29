@@ -24,7 +24,7 @@ Ultrasonic *Ultrasonic::instance = nullptr;
 
 void Ultrasonic::delay(uint16_t time)
 {
-    __HAL_TIM_SET_COUNTER(htim_, __COUNTER__);
+    __HAL_TIM_SET_COUNTER(htim_, 0);
     while (__HAL_TIM_GET_COUNTER(htim_) < time)
         ;
 }
@@ -32,7 +32,7 @@ void Ultrasonic::delay(uint16_t time)
 void Ultrasonic::trigger()
 {
     HAL_GPIO_WritePin(trig_port_, trig_pin_, GPIO_PIN_SET);
-    // delay(10);
+    delay(10);
     HAL_GPIO_WritePin(trig_port_, trig_pin_, GPIO_PIN_RESET);
 
     __HAL_TIM_ENABLE_IT(htim_, TIM_IT_CC1);
@@ -43,30 +43,39 @@ float Ultrasonic::get_distance_cm() const { return distance_cm_; }
 
 void Ultrasonic::handle_capture_callback()
 {
-    if (first_captured_ == 0) {
-        ic_val1_ = HAL_TIM_ReadCapturedValue(htim_, channel_); // read the first value
-        first_captured_ = 1;
+    // first interrupt: ECHO rising edge
+    // read that timestamp as the pulse start
+    if (!first_captured_) {
+        echo_rising_ticks_ = HAL_TIM_ReadCapturedValue(htim_, channel_);
+        first_captured_    = true;
+
         // change the polarity to falling edge
         __HAL_TIM_SET_CAPTUREPOLARITY(htim_, channel_, TIM_INPUTCHANNELPOLARITY_FALLING);
     }
 
-    else if (first_captured_ == 1) { // if the first is already captured
-        ic_val2_ = HAL_TIM_ReadCapturedValue(htim_, channel_);
+    // capture the falling edge of ECHO in ic_val2
+    else {
+
+        // Second interrupt: ECHO falling edge. Read timestamp as the pulse end
+        echo_falling_ticks_ = HAL_TIM_ReadCapturedValue(htim_, channel_);
+
+        // reset the timer for the next measurement
         __HAL_TIM_SET_COUNTER(htim_, 0);
 
         // normal case
-        if (ic_val2_ > ic_val1_) {
-            diff_ = ic_val2_ - ic_val1_;
+        if (echo_falling_ticks_ > echo_rising_ticks_) {
+            echo_pulse_ticks_ = echo_falling_ticks_ - echo_rising_ticks_;
         }
 
         // overflow case
-        else if (ic_val1_ > ic_val2_) {
-            diff_ = (0xffff - ic_val1_) + ic_val2_;
+        else if (echo_rising_ticks_ > echo_falling_ticks_) {
+            uint32_t arr = __HAL_TIM_GET_AUTORELOAD(htim_); // max value the timer counter can reach before wrapping to 0
+            echo_pulse_ticks_ = (arr - echo_rising_ticks_ + 1u) + echo_falling_ticks_;
         }
 
-        // convert time to distance
-        distance_cm_    = diff_ * SPEED_OF_SOUND / 2;
-        first_captured_ = 0; // set it back to false
+        // divide by two since ECHO measures RTT
+        distance_cm_    = echo_pulse_ticks_ * SPEED_OF_SOUND / 2;
+        first_captured_ = false;
 
         // set polarity to rising edge
         __HAL_TIM_SET_CAPTUREPOLARITY(htim_, channel_, TIM_INPUTCHANNELPOLARITY_RISING);

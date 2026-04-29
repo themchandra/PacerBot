@@ -51,7 +51,7 @@ extern "C" void app_main(void)
         HC.trigger();
         float distance;
         distance = HC.get_distance_cm();
-        printf("Distance = %f\n", distance);
+        printf("Distance = %.3f cm\n", distance);
         //  MPU6050.get_gyro(a_data);
         //  printf("x =%f, y=%f , z=%f\n",a_data[0],a_data[1],a_data[2]);
         // MPU6050.get_accel(a_data);
