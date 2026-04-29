@@ -2,7 +2,7 @@
 .cache/
 .settings/
 *.launch
-
+.clangd/
 # VSCode
 .vscode
 
