@@ -53,6 +53,8 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim3;
+
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart1_rx;
@@ -78,6 +80,7 @@ static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM3_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -88,42 +91,6 @@ void StartDefaultTask(void *argument);
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-
-void read_WHO_AM_I_reg(){
-	uint8_t buff[1] = {0};
-	buff[0] = WHO_AM_I;
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, WHO_AM_I, 1, buff, 1, HAL_MAX_DELAY);
-	printf("%x\n", buff[0]);
-}
-
-void read_accel_data() {
-	uint8_t data[6];
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, ACCEL_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
-	int16_t raw_ax =    (int16_t)((data[0] << 8) | data[1]);
-	int16_t raw_ay =    (int16_t)((data[2] << 8) | data[3]);
-	int16_t raw_az =    (int16_t)((data[4] << 8) | data[5]);
-
-	float ax = raw_ax * 0.00006103515;
-	float ay = raw_ay * 0.00006103515;
-	float az = raw_az * 0.00006103515;
-
-	printf("x=%.3f, y=%.3f, z=%.3f\n",ax, ay, az);
-}
-
-/* void read_gyro_data() {
-	uint8_t data[6];
-	HAL_I2C_Mem_Read(&hi2c1, IMU_ADDRESS << 1, GYRO_XOUT_H, 1, data, 6, HAL_MAX_DELAY);
-	int16_t raw_gx =    (int16_t)((data[0] << 8) | data[1]);
-	int16_t raw_gy =    (int16_t)((data[2] << 8) | data[3]);
-	int16_t raw_gz =    (int16_t)((data[4] << 8) | data[5]);
-
-	float gx = raw_gx * 0.00763358778;
-	float gy = raw_gy * 0.00763358778;
-	float gz = raw_gz * 0.00763358778;
-
-
-	printf("gx=%.3f, gy=%.3f, gz=%.3f\n",gx, gy, gz);
-} */
 
 /**
   * @brief  The application entry point.
@@ -158,6 +125,7 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   setvbuf(stdout, NULL, _IONBF, 0);
   printf("BOOT: hello on USART2\n");
@@ -288,6 +256,55 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 99;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 19999;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 1500;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 

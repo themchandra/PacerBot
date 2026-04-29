@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date Apr-29-2026
  */
 
 #include "app/app_main.h"
@@ -20,6 +20,7 @@ extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
+extern TIM_HandleTypeDef htim3;
 }
 
 
