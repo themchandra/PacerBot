@@ -12,3 +12,9 @@ Debug/
 
 # OS Specific folders
 .DS_Store
+
+# Python virtual environments
+web/api/venv/
+.venv
+venv
+__pycache__/
