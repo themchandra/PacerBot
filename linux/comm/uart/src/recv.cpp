@@ -2,7 +2,7 @@
  * @file recv.h
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Oct-30-2025
+ * @date Nov-07-2025
  */
 
 #include "comm/uart/config.h"
@@ -29,15 +29,50 @@ namespace {
     std::thread thread_;
     std::mutex queue_mtx_;
 
+    // Event handling
+    uart::EventFlag eventFlag_ {};
+
 
     void parseNQueue(uint8_t *data, size_t len)
     {
         // TODO: Determine if this is correct in case where the stream is
         // continuous? Might need to do a robust implementation if so...
+        // - Add current stream of bytes into buffer
+        // - Parse buffer:
+        //		- If not in a middle of a byte, begin parse with sync byte, loop
+        //		  until no more sync bytes are found
+        //		- If already in a middle of a byte, continue where it was left
+        //		  off, loop until no more sync bytes are found
         auto packet = uart::DataPacket::deserialize(data, len);
         if (packet.has_value()) {
             std::lock_guard<std::mutex> lock(queue_mtx_);
             queue_.push(packet.value());
+
+            // Determine event for other threads
+            uart::eEvent event {uart::eEvent::NONE};
+
+            switch (packet.value().getID()) {
+            case uart::ePacketID::TELEM_IMU:
+            case uart::ePacketID::TELEM_ULT:
+            case uart::ePacketID::TELEM_ENC:
+            case uart::ePacketID::TELEM_PID:
+            case uart::ePacketID::TELEM_BATTERY:
+                event = uart::eEvent::TELEMETRY;
+                break;
+            case uart::ePacketID::STM32_STATUS:
+                event = uart::eEvent::STATUS;
+                break;
+            case uart::ePacketID::STM32_ACK:
+                event = uart::eEvent::ACK;
+                break;
+            case uart::ePacketID::STM32_DEBUG:
+                event = uart::eEvent::DEBUG;
+                break;
+            default:
+                event = uart::eEvent::NONE;
+                break;
+            }
+            eventFlag_.notify(event);
         }
     }
 
@@ -148,6 +183,14 @@ namespace uart::recv {
         std::lock_guard<std::mutex> lock(queue_mtx_);
         std::queue<DataPacket> q_empty;
         std::swap(queue_, q_empty);
+    }
+
+
+    EventFlag &getEventFlag()
+    {
+        assert(isInitialized_);
+        eventFlag_.subscribe();
+        return eventFlag_;
     }
 
 } // namespace uart::recv
