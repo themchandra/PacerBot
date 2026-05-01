@@ -132,6 +132,34 @@ export default function App() {
           <p>Waiting for telemetry...</p>
         )}
       </section>
+      
+      <section className="debug">
+        <details>
+          <summary>Debug</summary>
+          {telemetry?.imu ? (
+            <div className="telemetry-data">
+              <div className="data-row">
+                <span>Accel:</span>
+                <strong>
+                  {Array.isArray(telemetry.imu.accel)
+                    ? telemetry.imu.accel.map(v => (typeof v === 'number' ? v.toFixed(2) : 'N/A')).join(', ')
+                    : 'N/A'}
+                </strong>
+              </div>
+              <div className="data-row">
+                <span>Gyro:</span>
+                <strong>
+                  {Array.isArray(telemetry.imu.gyro)
+                    ? telemetry.imu.gyro.map(v => (typeof v === 'number' ? v.toFixed(2) : 'N/A')).join(', ')
+                    : 'N/A'}
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <p>No IMU data</p>
+          )}
+        </details>
+      </section>
     </div>
   )
 }

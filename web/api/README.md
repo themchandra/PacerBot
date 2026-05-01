@@ -31,7 +31,7 @@ cd web/api
 The default port is `8000`. You can override it with `API_PORT`:
 
 ```bash
-API_PORT=8001 ./run_api.sh
+API_PORT=8000 ./run_api.sh
 ```
 
 ## Test
