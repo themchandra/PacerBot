@@ -36,11 +36,8 @@ extern "C" void app_main(void)
     MPU6050.scan_i2c();
 
     while (true) {
-        /* uart::send::enqueue_debug("Debug here!");
+        uart::send::enqueue_debug("Debug here!");
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        osDelay(150);
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        osDelay(2000); */
         MPU6050.get_accel(a_data);
         printf("x =%f, y=%f , z=%f\n", a_data[0], a_data[1], a_data[2]);
         vTaskDelay(500);

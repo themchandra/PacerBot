@@ -35,7 +35,7 @@ namespace {
     StaticTask_t task_cb_;
     StackType_t task_stack_mem_[STACK_SIZE_BYTES];
 
-    static const osThreadAttr_t task_att_ = {
+    constexpr osThreadAttr_t task_att_ = {
         .name       = "sendTask",
         .attr_bits  = 0,
         .cb_mem     = &task_cb_,
@@ -55,7 +55,7 @@ namespace {
         while (isTaskRunning_) {
             uart::DataPacket_raw sendPacket {};
 
-            // Block until a packet is available.
+            // Blocking call, waiting until a packet is available 
             if (osMessageQueueGet(packetQueue_, &sendPacket, nullptr, osWaitForever)
                 != osOK) {
                 continue;
@@ -64,12 +64,11 @@ namespace {
             const HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(
                 huart_, reinterpret_cast<uint8_t *>(&sendPacket), sendPacket.totalSize());
             if (ret != HAL_OK) {
-                // Provide some debug information if DMA transmit couldn't be started
                 printf("HAL_UART_Transmit_DMA failed: %d\n\r", static_cast<int>(ret));
                 continue;
             }
 
-            // Wait for the DMA completion callback before reusing the stack packet.
+            // Wait for the DMA completion callback 
             const uint32_t flags
                 = osThreadFlagsWait(TX_COMPLETE_FLAG, osFlagsWaitAny, osWaitForever);
             if (flags != TX_COMPLETE_FLAG) {
@@ -134,6 +133,7 @@ namespace uart::send {
     }
 
 
+    // Signals UART transmit is completed
     void handleTxComplete(UART_HandleTypeDef *huart)
     {
         if (huart == huart_ && taskHandle_ != nullptr) {
@@ -195,6 +195,7 @@ namespace uart::send {
 
         enqueue_packet(ePacketID::STM32_DEBUG, msg, len);
     }
+
 
     bool isQueueEmpty()
     {

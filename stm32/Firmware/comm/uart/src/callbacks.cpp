@@ -18,7 +18,9 @@ namespace {
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    uart::send::handleTxComplete(huart);
+    if (huart == huart2_) {
+        uart::send::handleTxComplete(huart);
+    }
 }
 
 
@@ -29,9 +31,6 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t s
 
     if (huart == huart1_) {
         uart::recv::updateBufInd(size);
-    }
-
-    if (huart == huart2_) {
     }
 }
 

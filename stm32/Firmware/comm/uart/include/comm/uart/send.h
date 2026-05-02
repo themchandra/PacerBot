@@ -32,8 +32,8 @@ namespace uart::send {
     void stop();
     bool isRunning();
 
+    // Signals UART transmit is completed
     void handleTxComplete(UART_HandleTypeDef *huart);
-
 
     // Enqueuing data
     void enqueue_IMU(IMU_data data);

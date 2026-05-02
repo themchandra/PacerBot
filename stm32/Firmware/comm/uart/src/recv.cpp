@@ -255,6 +255,8 @@ namespace uart::recv {
         assert(isInitialized_);
         isTaskRunning_ = false;
         HAL_UART_DMAStop(huart_);
+        osThreadTerminate(taskHandle_);
+        taskHandle_ = nullptr;
     }
 
 
