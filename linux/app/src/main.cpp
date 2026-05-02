@@ -24,7 +24,7 @@ void test()
             uart::ePacketID::RAD_ACK,
             std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str.data()),
                                      str.size()));
-        uart::send::enqueue(packet);
+        uart::send::enqueue(std::move(packet));
         timing::sleepForMs(1000);
     }
 }
