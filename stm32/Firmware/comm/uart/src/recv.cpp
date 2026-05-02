@@ -230,9 +230,8 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
-        dataPacket_ = uart::DataPacket_raw {};
-        curIdx_     = 0;
-        newIdx_     = 0;
+        curIdx_ = 0;
+        newIdx_ = 0;
 
         const HAL_StatusTypeDef status
             = HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);

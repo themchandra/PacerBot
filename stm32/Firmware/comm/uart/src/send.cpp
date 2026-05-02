@@ -19,6 +19,8 @@ namespace {
     bool isInitialized_ {false};
     UART_HandleTypeDef *huart_;
 
+    constexpr uint32_t TX_COMPLETE_FLAG {0x01};
+
     // Send Management
     osMessageQueueId_t packetQueue_;
 
@@ -46,44 +48,47 @@ namespace {
     };
 
 
-    // Calculate transmission delay based on packet size and uart baudrate
-    // For safety, add margin to ensure DMA completes before next packet
-    uint32_t getTransmitDelayMs()
-    {
-        // Maximum packet size is 104 bytes (1 sync + 1 id + 1 length + 100 data + 1 crc)
-        constexpr uint32_t MAX_PACKET_BITS {104 * 8};
-        // Assuming uart baudrate is typically 115200 or higher
-        // For conservative estimate, use 115200 (1 byte = ~87 microseconds)
-        // Calculate: (bits / baudrate) * 1000 to get milliseconds, plus 20% margin
-        constexpr uint32_t UART_BAUDRATE {115200};
-        const uint32_t transmitTimeMs = (MAX_PACKET_BITS * 1000) / UART_BAUDRATE + 2;
-        return transmitTimeMs;
-    }
-
     void threadLoop(void *argument)
     {
         (void)argument;
-        const uint32_t transmitDelayMs = getTransmitDelayMs();
 
         while (isTaskRunning_) {
             uart::DataPacket_raw sendPacket {};
 
-            // Blocks & waits for packets in queue
-            osMessageQueueGet(packetQueue_, &sendPacket, 0, osWaitForever);
+            // Block until a packet is available.
+            if (osMessageQueueGet(packetQueue_, &sendPacket, nullptr, osWaitForever)
+                != osOK) {
+                continue;
+            }
+
             const HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(
                 huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
             if (ret != HAL_OK) {
                 // Provide some debug information if DMA transmit couldn't be started
                 printf("HAL_UART_Transmit_DMA failed: %d\n\r", static_cast<int>(ret));
+                continue;
             }
 
-            // Delay to allow DMA transmission to complete
-            osDelay(transmitDelayMs);
+            // Wait for the DMA completion callback before reusing the stack packet.
+            const uint32_t flags
+                = osThreadFlagsWait(TX_COMPLETE_FLAG, osFlagsWaitAny, osWaitForever);
+            if (flags != TX_COMPLETE_FLAG) {
+                printf("UART TX wait failed: 0x%08lx\n\r",
+                       static_cast<unsigned long>(flags));
+            }
         }
     }
 
 
 } // namespace
+
+
+extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart == huart_ && taskHandle_ != nullptr) {
+        (void)osThreadFlagsSet(taskHandle_, TX_COMPLETE_FLAG);
+    }
+}
 
 
 namespace uart::send {
@@ -125,6 +130,8 @@ namespace uart::send {
     {
         assert(isInitialized_);
         isTaskRunning_ = false;
+        osThreadTerminate(taskHandle_);
+        taskHandle_ = nullptr;
     }
 
 
@@ -160,8 +167,9 @@ namespace uart::send {
         assert(isInitialized_);
 
         DataPacket_raw packet {};
-        packet.sync = SYNC_SEND;
-        packet.id   = ePacketID::STM32_ACK;
+        packet.sync   = SYNC_SEND;
+        packet.id     = ePacketID::STM32_ACK;
+        packet.length = 0;
         packet.data[packet.length]
             = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
 
