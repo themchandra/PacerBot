@@ -25,7 +25,7 @@ namespace uart::recv {
 
     std::shared_ptr<SubscriberHandle>
     subscribe(std::initializer_list<ePacketID> ids_filter);
-    void unsubscribe(std::shared_ptr<SubscriberHandle> handle);
+    void unsubscribe(std::shared_ptr<SubscriberHandle> subscriber);
 
 } // namespace uart::recv
 

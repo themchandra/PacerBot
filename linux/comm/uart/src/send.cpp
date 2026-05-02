@@ -16,7 +16,6 @@
 #include <semaphore>
 #include <thread>
 
-// TODO: Semaphores for loop
 namespace {
     bool isInitialized_ {false};
 
