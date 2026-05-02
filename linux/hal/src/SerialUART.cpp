@@ -2,7 +2,7 @@
  * @file SerialUART.cpp
  * @brief I/O for serial communication (UART) port.
  * @author Hayden Mai
- * @date Oct-30-2025
+ * @date May-01-2026
  *
  * @link
  * https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
@@ -11,12 +11,12 @@
 #include "hal/SerialUART.h"
 #include "hal/exception/SerialException.h"
 
+#include <asm/termbits.h>
 #include <cstring>
 #include <iostream>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <termios.h>
 #include <unistd.h>
 
 
@@ -30,7 +30,7 @@ SerialUART::~SerialUART() { closePort(); }
 
 void SerialUART::openPort()
 {
-    // Open serial port in blocking read/write mode
+    // Open serial port in blocking mode.
     // O_RDWR: Read and write access
     // O_NOCTTY: Don't make this the controlling terminal for the process
     fd_ = open(device_.c_str(), O_RDWR | O_NOCTTY);
@@ -39,24 +39,12 @@ void SerialUART::openPort()
                               + strerror(errno));
     }
 
-    // Control DTR (Data Terminal Ready) and RTS (Request To Send) modem lines
-    // Many USB-serial adapters connect these lines to the microcontroller's reset pin
-    // Clearing them prevents the STM32 from resetting when we open the port
-    int status;
-    ioctl(fd_, TIOCMGET, &status); // Get current modem line status
-    status &= ~TIOCM_DTR;          // Clear DTR line
-    status &= ~TIOCM_RTS;          // Clear RTS line
-    ioctl(fd_, TIOCMSET, &status); // Apply the changes
-
-    // Wait for hardware to stabilize after modem line changes
-    usleep(100000);
     configurePort();
 
-    // Drain any stale/garbage data that may have accumulated in the buffer
-    // This clears data that was sent before our program was ready to receive
-    tcflush(fd_, TCIOFLUSH); // Flush both input and output buffers
-    usleep(200000);
-    tcflush(fd_, TCIOFLUSH); // Flush again to catch any late arrivals
+    if (ioctl(fd_, TCFLSH, TCIOFLUSH) != 0) {
+        throw SerialException("Failed to flush UART buffers: "
+                              + std::string(strerror(errno)));
+    }
 
     isOpen_ = true;
 }
@@ -117,30 +105,34 @@ void SerialUART::setTimeout(int seconds)
 
 void SerialUART::configurePort() const
 {
-    struct termios options;
-    memset(&options, 0, sizeof(options)); // Zero out structure
+    struct termios2 tio;
 
-    constexpr int MIN_BYTES {1};
-    const int TIMEOUT_DS {timeout_sec_ * 10}; // Timeout in deciseconds
-
-    options.c_cflag = B115200 | CS8 | CREAD | CLOCAL; // 115200 baud, 8N1, raw mode
-    options.c_cflag &= ~PARENB;                       // No parity
-    options.c_cflag &= ~CSTOPB;                       // 1 stop bit
-    options.c_cflag &= ~CRTSCTS;                      // No hardware flow control
-
-    options.c_iflag = IGNPAR; // Ignore parity errors
-    options.c_oflag = 0;      // Raw output
-    options.c_lflag = 0;      // Raw input
-
-    options.c_cc[VMIN]  = MIN_BYTES;  // Block until at least 1 byte
-    options.c_cc[VTIME] = TIMEOUT_DS; // 1 second timeout
-
-    tcflush(fd_, TCIOFLUSH); // Flush buffers before applying settings
-
-    if (tcsetattr(fd_, TCSANOW, &options) != 0) {
-        throw SerialException("Failed to set UART attributes: "
+    // Read current UART settings and update only required fields.
+    if (ioctl(fd_, TCGETS2, &tio) != 0) {
+        throw SerialException("Failed to get UART attributes: "
                               + std::string(strerror(errno)));
     }
 
-    tcdrain(fd_); // Wait for settings to apply
+    // Match uart-test setup: custom arbitrary baud via BOTHER.
+    tio.c_cflag &= ~CBAUD;
+    tio.c_cflag |= BOTHER;
+    tio.c_ispeed = baudrate_;
+    tio.c_ospeed = baudrate_;
+
+    tio.c_cflag &= ~PARENB;
+    tio.c_cflag &= ~CSTOPB;
+    tio.c_cflag &= ~CSIZE;
+    tio.c_cflag |= CS8;
+    tio.c_cflag |= (CLOCAL | CREAD);
+
+    // Timed blocking reads: prevents tight spin when no data is available.
+    // VMIN=0 and VTIME>0 means read returns on first byte or timeout.
+    const int timeout_ds = (timeout_sec_ > 0) ? (timeout_sec_ * 10) : 1;
+    tio.c_cc[VMIN]       = 0;
+    tio.c_cc[VTIME]      = timeout_ds;
+
+    if (ioctl(fd_, TCSETS2, &tio) != 0) {
+        throw SerialException("Failed to set UART attributes: "
+                              + std::string(strerror(errno)));
+    }
 }

@@ -1,8 +1,8 @@
 /**
- * @file uart_comm.cpp
+ * @file manager.cpp
  * @brief Manages UART communication between Radxa & STM32
  * @author Hayden Mai
- * @date Oct-17-2025
+ * @date May-01-2026
  */
 
 #include "comm/uart/config.h"

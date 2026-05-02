@@ -43,30 +43,33 @@ int main()
     std::thread thread_(test);
 
     std::cout << "Init done!\n";
-    uart::EventFlag &eventFlag {uart::recv::getEventFlag()};
+
+    // Subscribe to all incoming packet types
+    auto subscriber = uart::recv::subscribe(
+        {uart::ePacketID::TELEM_IMU, uart::ePacketID::TELEM_ULT,
+         uart::ePacketID::TELEM_ENC, uart::ePacketID::TELEM_PID,
+         uart::ePacketID::TELEM_BATTERY, uart::ePacketID::STM32_STATUS,
+         uart::ePacketID::STM32_ACK, uart::ePacketID::STM32_DEBUG});
 
     while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
-        // RECEIVING
-        eventFlag.wait();
-        while (uart::recv::isQueueEmpty() == false) {
-            auto newPacket = uart::recv::dequeue();
+        // RECEIVING - pop() blocks until a packet is available
+        try {
+            auto packet = subscriber->pop();
 
-            if (newPacket.has_value()) {
-                std::cout << "\nData received!! Printing packet...\n";
-                auto packet = newPacket.value();
+            std::cout << "\nData received!! Printing packet...\n";
+            const std::vector<uint8_t> &data = packet.getData();
 
-                // TODO: Print from packet class
-                const std::vector<uint8_t> &data = packet.getData();
-
-                std::cout << "Packet data: ";
-                for (uint8_t byte : data) {
-                    std::cout << static_cast<char>(byte);
-                }
-                std::cout << std::endl;
+            std::cout << "Packet data: ";
+            for (uint8_t byte : data) {
+                std::cout << static_cast<char>(byte);
             }
+            std::cout << std::endl;
+        } catch (const std::exception &e) {
+            std::cerr << "Error receiving packet: " << e.what() << std::endl;
         }
     }
 
+    uart::recv::unsubscribe(subscriber);
     timing::deinit();
     uart::manager::deinit();
 }

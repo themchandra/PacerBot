@@ -2,19 +2,19 @@
  * @file send.cpp
  * @brief Handles data transmission via UART
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date May-01-2026
  */
 
-#include "comm/uart/config.h"
 #include "comm/uart/send.h"
+#include "comm/uart/config.h"
 
 #include <atomic>
 #include <cassert>
 #include <mutex>
 #include <optional>
 #include <queue>
-#include <thread>
 #include <semaphore>
+#include <thread>
 
 // TODO: Semaphores for loop
 namespace {
@@ -30,34 +30,34 @@ namespace {
     std::atomic_bool isThreadRunning_ {false};
     std::thread thread_;
     std::mutex queue_mtx_;
-	std::counting_semaphore<uart::config::MAX_TX_QUEUE_SIZE> queue_sem_(0);
-
-
-    void serialAndSend()
-    {
-        uint8_t buffer[uart::config::READ_BUF_SIZE] {};
-
-        // Serialize into the buffer
-        size_t packetSize = queue_.front().serialize(buffer, sizeof(buffer));
-        queue_.pop();
-
-        uartPtr_->writeData(buffer, packetSize);
-    }
+    std::counting_semaphore<uart::config::MAX_TX_QUEUE_SIZE> queue_sem_(0);
 
 
     void thread_loop()
     {
+        uint8_t buffer[uart::config::READ_BUF_SIZE] {};
+
         while (isThreadRunning_) {
             // Check if queue is empty:
             // - If empty, do nothing
             // - If not, serialize the first item in queue
             // 		- Make sure data serialization is valid
             //		- Send data via uart
-			queue_sem_.acquire();
-            std::lock_guard<std::mutex> lock(queue_mtx_);
-            if (!queue_.empty()) {
-                serialAndSend();
+            queue_sem_.acquire();
+            if (!isThreadRunning_) {
+                break; // Exit loop by stop()
             }
+
+            std::lock_guard<std::mutex> lock(queue_mtx_);
+            if (queue_.empty()) {
+                continue; // End loop iteration early
+            }
+
+            // Serialize into the buffer
+            size_t packetSize = queue_.front().serialize(buffer, sizeof(buffer));
+            queue_.pop();
+
+            uartPtr_->writeData(buffer, packetSize);
         }
     }
 
@@ -99,6 +99,7 @@ namespace uart::send {
     {
         assert(isInitialized_);
         isThreadRunning_ = false;
+        queue_sem_.release(); // acquire() unblocks to end loop
         thread_.join();
     }
 
@@ -110,12 +111,12 @@ namespace uart::send {
     }
 
 
-    void enqueue(DataPacket packet)
+    void enqueue(DataPacket &&packet)
     {
         assert(isInitialized_);
         std::lock_guard<std::mutex> lock(queue_mtx_);
         queue_.push(std::move(packet));
-		queue_sem_.release();
+        queue_sem_.release();
     }
 
 
@@ -142,8 +143,7 @@ namespace uart::send {
         // Create an empty queue and swap,
         // Destructor for DataPacket objects will run
         std::lock_guard<std::mutex> lock(queue_mtx_);
-        std::queue<DataPacket> q_empty;
-        std::swap(queue_, q_empty);
+        queue_ = {};
     }
 
 } // namespace uart::send

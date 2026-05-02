@@ -2,7 +2,7 @@
  * @file send.h
  * @brief Handles data transmission via UART
  * @author Hayden Mai
- * @date Oct-17-2025
+ * @date May-01-2026
  */
 
 #ifndef COMM_UART_SEND_H_
@@ -23,7 +23,7 @@ namespace uart::send {
     bool isRunning();
 
     // Queue management
-    void enqueue(DataPacket packet);
+    void enqueue(DataPacket&& packet); // NOTE: Caller gives up packet ownership
     size_t getQueueSize();
     bool isQueueEmpty();
     void clearQueue();

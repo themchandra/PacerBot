@@ -2,11 +2,11 @@
  * @file packet_info.cpp
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-06-2025
+ * @date May-01-2026
  */
 
-#include "comm/uart/config.h"
 #include "comm/uart/packet_info.h"
+#include "comm/uart/config.h"
 
 #include <cstddef> // for size_t
 #include <cstdint> // for uint8_t
@@ -137,6 +137,5 @@ namespace uart {
         uint8_t computed_crc8 = calculate_crc8();
         return computed_crc8 == crc8_;
     }
-
 
 } // namespace uart

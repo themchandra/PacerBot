@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-05-2025
+ * @date May-01-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -13,9 +13,9 @@
 #include <span>
 #include <vector>
 
+
 namespace uart {
-    // Max data packet size
-    constexpr size_t DATA_MAX_SIZE {100};
+    constexpr size_t DATA_MAX_SIZE {256};
 
     // Sync bytes
     constexpr uint8_t SYNC_RECV {0x5A};
@@ -61,7 +61,8 @@ namespace uart {
     /** @brief Data packet structure for UART communication */
     class DataPacket {
       public:
-        // Constructor, meant to be used for transmitting packets. Sync and crc8 will be auto-generated.
+        // Constructor, meant to be used with storing received packets. Timestamp, sync,
+        // and crc8 will be auto-generated.
         DataPacket(ePacketID id, std::span<const uint8_t> data_payload);
 
         // Convert DataPacket to a uint8_t buffer for UART transmission
@@ -87,20 +88,18 @@ namespace uart {
 
         uint8_t calculate_crc8() const;
         bool validate_crc() const;
+        static uint32_t getTimeMs();
     };
 
-
-    namespace recv {
-        /** @brief IMU data structure from the telemetry packet */
-        struct IMU_data {
-            int16_t accel_x {};
-            int16_t accel_y {};
-            int16_t accel_z {};
-            int16_t gyro_x {};
-            int16_t gyro_y {};
-            int16_t gyro_z {};
-        };
-    } // namespace recv
+    /** @brief IMU data structure from the telemetry packet */
+    struct IMU_data {
+        int16_t accel_x {};
+        int16_t accel_y {};
+        int16_t accel_z {};
+        int16_t gyro_x {};
+        int16_t gyro_y {};
+        int16_t gyro_z {};
+    };
 
 } // namespace uart
 
