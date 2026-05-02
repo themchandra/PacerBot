@@ -47,15 +47,19 @@ namespace {
                 break; // Exit loop by stop()
             }
 
-            std::lock_guard<std::mutex> lock(queue_mtx_);
-            if (queue_.empty()) {
-                continue; // End loop iteration early
+            size_t packetSize {};
+            {
+                std::lock_guard<std::mutex> lock(queue_mtx_);
+                if (queue_.empty()) {
+                    continue; // End loop iteration early
+                }
+
+                // Serialize inside the lock (fast operation)
+                packetSize = queue_.front().serialize(buffer, sizeof(buffer));
+                queue_.pop();
             }
 
-            // Serialize into the buffer
-            size_t packetSize = queue_.front().serialize(buffer, sizeof(buffer));
-            queue_.pop();
-
+            // Write outside the lock to reduce contention
             uartPtr_->writeData(buffer, packetSize);
         }
     }

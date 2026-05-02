@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <deque>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -18,7 +19,6 @@
 #include <optional>
 #include <queue>
 #include <thread>
-#include <vector>
 
 
 namespace {
@@ -31,8 +31,8 @@ namespace {
     std::vector<std::shared_ptr<uart::SubscriberHandle>> subscribers_;
     std::mutex sub_mtx_; // Used for managing subscriber subscriptions
 
-    // Buffer for storing partial packets
-    std::vector<uint8_t> streamBuffer_;
+    // Buffer for storing partial packets (deque for O(1) front/back erasure)
+    std::deque<uint8_t> streamBuffer_;
 
     // Threading
     std::atomic_bool isThreadRunning_ {false};
@@ -90,7 +90,10 @@ namespace {
             }
 
             // Attempt to deserialize the packet
-            auto packet = uart::DataPacket::deserialize(streamBuffer_.data(), packetLen);
+            // Convert to vector for deserialization (required for contiguous memory)
+            std::vector<uint8_t> packetData(streamBuffer_.begin(),
+                                            streamBuffer_.begin() + packetLen);
+            auto packet = uart::DataPacket::deserialize(packetData.data(), packetLen);
             if (packet.has_value()) {
                 // Valid packet - publish to all subscribers
                 publish(packet.value());
