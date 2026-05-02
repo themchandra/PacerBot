@@ -86,9 +86,9 @@ namespace {
             return false;
         }
 
-        const auto *rawBytes      = reinterpret_cast<const uint8_t *>(&packet);
-        const uint8_t expectedCRC = uart::calculate_crc8(const_cast<uint8_t *>(rawBytes),
-                                                         packet.totalSize() - 1);
+        const auto *rawBytes = reinterpret_cast<const uint8_t *>(&packet);
+        const uint8_t expectedCRC
+            = uart::calculate_crc8(rawBytes, packet.totalSize() - 1);
         return packet.data[packet.length] == expectedCRC;
     }
 

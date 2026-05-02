@@ -2,11 +2,12 @@
  * @file callbacks.cpp
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Dec-13-2025
+ * @date May-01-2026
  */
 
 #include "comm/uart/callbacks.h"
 #include "comm/uart/recv.h"
+#include "comm/uart/send.h"
 
 namespace {
     // TODO: If this does grow, put into an array
@@ -15,13 +16,19 @@ namespace {
 } // namespace
 
 
+extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    uart::send::handleTxComplete(huart);
+}
+
+
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
     if (size) {
     }
 
     if (huart == huart1_) {
-		uart::recv::updateBufInd(size);
+        uart::recv::updateBufInd(size);
     }
 
     if (huart == huart2_) {

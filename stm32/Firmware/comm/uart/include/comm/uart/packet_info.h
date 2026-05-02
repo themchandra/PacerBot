@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date May-01-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -59,7 +59,7 @@ namespace uart {
 
 
     /** @brief Calculate CRC8 checksum */
-    uint8_t calculate_crc8(uint8_t *data, uint16_t length);
+    uint8_t calculate_crc8(const uint8_t *data, uint16_t length);
 } // namespace uart
 
 #endif
