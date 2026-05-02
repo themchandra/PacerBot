@@ -2,7 +2,7 @@
  * @file send.cpp
  * @brief Handles data transmission via UART DMA
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date May-01-2026
  */
 
 #include "comm/uart/send.h"
@@ -10,9 +10,9 @@
 #include "cmsis_os.h"
 #include "stm32f4xx_hal.h"
 
-#include <cstdio>
 #include <atomic>
 #include <cassert>
+#include <cstdio>
 #include <cstring>
 
 namespace {
@@ -46,25 +46,39 @@ namespace {
     };
 
 
+    // Calculate transmission delay based on packet size and uart baudrate
+    // For safety, add margin to ensure DMA completes before next packet
+    uint32_t getTransmitDelayMs()
+    {
+        // Maximum packet size is 104 bytes (1 sync + 1 id + 1 length + 100 data + 1 crc)
+        constexpr uint32_t MAX_PACKET_BITS {104 * 8};
+        // Assuming uart baudrate is typically 115200 or higher
+        // For conservative estimate, use 115200 (1 byte = ~87 microseconds)
+        // Calculate: (bits / baudrate) * 1000 to get milliseconds, plus 20% margin
+        constexpr uint32_t UART_BAUDRATE {115200};
+        const uint32_t transmitTimeMs = (MAX_PACKET_BITS * 1000) / UART_BAUDRATE + 2;
+        return transmitTimeMs;
+    }
+
     void threadLoop(void *argument)
     {
         (void)argument;
+        const uint32_t transmitDelayMs = getTransmitDelayMs();
 
         while (isTaskRunning_) {
             uart::DataPacket_raw sendPacket {};
 
             // Blocks & waits for packets in queue
             osMessageQueueGet(packetQueue_, &sendPacket, 0, osWaitForever);
-            HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket,
-                                                          sendPacket.totalSize());
+            const HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(
+                huart_, (uint8_t *)&sendPacket, sendPacket.totalSize());
             if (ret != HAL_OK) {
                 // Provide some debug information if DMA transmit couldn't be started
                 printf("HAL_UART_Transmit_DMA failed: %d\n\r", static_cast<int>(ret));
             }
 
-            // TODO: Make constants and do automatic calculate with baudrate for allow
-            // 		 time for DMA transmission
-            osDelay(10); // Maximum size DataPacket_raw is 104 bytes
+            // Delay to allow DMA transmission to complete
+            osDelay(transmitDelayMs);
         }
     }
 
@@ -76,8 +90,12 @@ namespace uart::send {
     void init(UART_HandleTypeDef *huart)
     {
         assert(!isInitialized_);
-        huart_         = huart;
-        packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        huart_       = huart;
+        packetQueue_ = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        if (packetQueue_ == nullptr) {
+            printf("Failed to create message queue\n\r");
+            return;
+        }
         isInitialized_ = true;
     }
 
@@ -130,7 +148,10 @@ namespace uart::send {
         packet.data[packet.length]
             = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
 
-        osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        const osStatus_t status = osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        if (status != osOK) {
+            printf("Failed to queue IMU packet (status=%d)\n\r", status);
+        }
     }
 
 
@@ -144,7 +165,10 @@ namespace uart::send {
         packet.data[packet.length]
             = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
 
-        osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        const osStatus_t status = osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        if (status != osOK) {
+            printf("Failed to queue ACK packet (status=%d)\n\r", status);
+        }
     }
 
 
@@ -158,7 +182,7 @@ namespace uart::send {
 
         // Cut off string if too long
         constexpr uint8_t MAX_MSG_SIZE {DATA_MAX_SIZE - 1};
-        uint8_t len = strlen(msg);
+        uint8_t len = static_cast<uint8_t>(strlen(msg));
         if (len > MAX_MSG_SIZE) {
             len = MAX_MSG_SIZE;
         }
@@ -171,16 +195,16 @@ namespace uart::send {
         packet.data[packet.length]
             = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
 
-        osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        const osStatus_t status = osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        if (status != osOK) {
+            printf("Failed to queue debug message (status=%d)\n\r", status);
+        }
     }
 
     bool isQueueEmpty()
     {
         assert(isInitialized_);
-        if (osMessageQueueGetCount(packetQueue_) == 0) {
-            return true;
-        }
-        return false;
+        return osMessageQueueGetCount(packetQueue_) == 0;
     }
 
 

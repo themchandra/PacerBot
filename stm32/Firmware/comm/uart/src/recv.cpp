@@ -2,7 +2,7 @@
  * @file recv.cpp
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date May-01-2026
  */
 
 #include "comm/uart/recv.h"
@@ -19,31 +19,22 @@ namespace {
     bool isInitialized_ {false};
     UART_HandleTypeDef *huart_;
 
-    // Manage packet parsing
-    enum class eParseState : uint8_t {
-        SYNC,
-        ID,
-        LENGTH,
-        DATA,
-        CHECKSUM,
-    };
-
-    constexpr uint32_t FLAGS_VALUE {0x01};
+    constexpr int32_t FLAGS_VALUE {0x01};
     constexpr uint32_t FLAG_TIMEOUT_MS {100};
     constexpr uint32_t QUEUE_TIMEOUT_MS {100};
 
     // Receiving buffers
-    constexpr int RX_BUF_SIZE {512};
+    constexpr uint16_t RX_BUF_SIZE {1024};
+    constexpr uint16_t RX_BUF_MASK {
+        RX_BUF_SIZE - 1}; // Bitmask for circular buffer (requires power-of-2 size)
     uint8_t rxBuf_[RX_BUF_SIZE] {};
 
-    // Buffer tracking
-    uint16_t curIdx_ {};
-    uint16_t newIdx_ {};
+    // Buffer tracking - volatile for shared access between ISR and thread
+    volatile uint16_t curIdx_ {}; // Updated by parsing thread
+    volatile uint16_t newIdx_ {}; // Updated by DMA callback
 
-    // Track parsing state
+    // Parsed packet storage
     uart::DataPacket_raw dataPacket_ {};
-    eParseState curState_ {};
-    uint8_t curPos_ {};
 
     // Message queue for parsed packets
     osMessageQueueId_t packetQueue_;
@@ -67,168 +58,142 @@ namespace {
 
     void addToQueue()
     {
-        // TODO: Error Checking #4
-        osMessageQueuePut(packetQueue_, &dataPacket_, 0, 0);
+        const osStatus_t status
+            = osMessageQueuePut(packetQueue_, &dataPacket_, 0, QUEUE_TIMEOUT_MS);
+        if (status != osOK) {
+            printf("Failed to queue packet (status=%d)\n\r", status);
+        }
     }
 
     /**
-     * @brief Validate the current byte based on the state
-     * @param state The current state of parsing in a packet
-     * @param byte The current byte in the data buffer
-     * @return true if valid, false otherwise
+     * @brief Validate a candidate packet using the same rules as the Linux parser.
+     * @param packet The candidate packet.
+     * @return true if valid, false otherwise.
      */
-    bool validateByte(eParseState state, uint8_t byte)
+    bool validatePacket(const uart::DataPacket_raw &packet)
     {
-        bool isValid {false};
-        uint8_t calcCRC {};
-
-        switch (state) {
-        case eParseState::SYNC:
-            dataPacket_ = uart::DataPacket_raw {};
-            if (byte == uart::SYNC_RECV) {
-                isValid = true;
-            }
-            break;
-
-        case eParseState::ID:
-            if (byte >= static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
-                && byte < static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
-                isValid = true;
-            }
-            break;
-
-        case eParseState::LENGTH:
-            if (byte > 0 && byte <= uart::DATA_MAX_SIZE) {
-                isValid = true;
-            }
-            break;
-
-        case eParseState::DATA:
-            isValid = true;
-            break;
-
-        case eParseState::CHECKSUM:
-            calcCRC = uart::calculate_crc8(reinterpret_cast<uint8_t *>(&dataPacket_),
-                                           dataPacket_.totalSize() - 1);
-            if (byte == calcCRC) {
-                isValid = true;
-            }
-            break;
-
-        default:
-            break;
+        if (packet.sync != uart::SYNC_RECV) {
+            return false;
         }
 
-        return isValid;
-    }
-
-
-    /**
-     * @brief Update tracking parsing state variables (cursState, curPos)
-     */
-    void updateState(bool isByteValid)
-    {
-        if (isByteValid) {
-            switch (curState_) {
-            case eParseState::SYNC:
-            case eParseState::ID:
-            case eParseState::LENGTH:
-                curState_ = static_cast<eParseState>(static_cast<uint8_t>(curState_) + 1);
-                curPos_++;
-                break;
-
-            case eParseState::DATA:
-                // If the current index position is the byte before checksum
-                // sync, id, length not included
-                if (curPos_ - 3 == dataPacket_.length - 1) {
-                    curState_ = eParseState::CHECKSUM;
-                }
-                curPos_++;
-                break;
-
-            case eParseState::CHECKSUM:
-                curState_ = eParseState::SYNC;
-                curPos_   = 0;
-                break;
-
-            default:
-                break;
-            }
-
-        } else {
-            curState_ = eParseState::SYNC;
-            curPos_   = 0;
+        const auto packetId = static_cast<uint8_t>(packet.id);
+        if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
+            || packetId >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
+            return false;
         }
+
+        if (packet.length == 0 || packet.length >= uart::DATA_MAX_SIZE) {
+            return false;
+        }
+
+        const auto *rawBytes      = reinterpret_cast<const uint8_t *>(&packet);
+        const uint8_t expectedCRC = uart::calculate_crc8(const_cast<uint8_t *>(rawBytes),
+                                                         packet.totalSize() - 1);
+        return packet.data[packet.length] == expectedCRC;
     }
 
 
     void parseBuffer()
     {
-        // Circular DMA: 2 situations
-        // 1: The DMA is ahead
-        // - curIdx <= newIdx, the difference returns the number of bytes we need to parse
-        // 2: DMA looped around
-        // - curIdx > newIdx, the different returns
-        uint16_t newBytes {};
-        if (curIdx_ <= newIdx_) {
-            newBytes = newIdx_ - curIdx_;
+        // Cache volatile indices to avoid repeated volatile reads
+        const uint16_t curIdxCache = curIdx_;
+        const uint16_t newIdxCache = newIdx_;
 
+        // Calculate available bytes in circular buffer
+        uint16_t newBytes {};
+        if (curIdxCache <= newIdxCache) {
+            newBytes = newIdxCache - curIdxCache;
         } else {
-            newBytes = RX_BUF_SIZE - curIdx_ + newIdx_;
+            newBytes = RX_BUF_SIZE - curIdxCache + newIdxCache;
         }
 
-        // No new bytes & edge case: current index reset to 0 and newIdx_ still at 512
-        if (newBytes <= 0 || (newIdx_ - curIdx_) == RX_BUF_SIZE) {
+        // No new bytes or buffer completely full
+        if (newBytes == 0 || newBytes == RX_BUF_SIZE) {
             return;
         }
 
-        // TODO: Peek before commit parser where we wait for stream to contain at least a
-        // 		 packet then process it
+        uint16_t consumedBytes {};
+        constexpr uint16_t HEADER_SIZE {3};
 
-        // PARSER IMPLEMENTATION
-        // Perform a byte by byte buffer parsing
-        // - Track which where in the packet via curState
-        // - For sync, id, length, & checksum, verify if its valid before copying
-        // - If valid, process it through another function, reset
-        // - If not valid, reset
-        // - For reset, 3 variables: curState, curPos, totalLen
-        // - Once each byte is parsed, ensure curIdx is incremented properly, curState &
-        // 	 curPos is updated
-        uint8_t *dataPacket_ptr = reinterpret_cast<uint8_t *>(&dataPacket_);
-
-        for (uint16_t curByte {}; curByte < newBytes; curByte++) {
-            bool isByteValid {validateByte(curState_, rxBuf_[curIdx_])};
-
-            if (isByteValid == true) {
-                // Copy data from receiving buffer
-                dataPacket_ptr[curPos_] = rxBuf_[curIdx_];
-
-                // Valid and checksum is done, add to freertos queue
-                if (curState_ == eParseState::CHECKSUM) {
-                    addToQueue();
-                }
+        while (consumedBytes < newBytes) {
+            const uint16_t idx     = (curIdxCache + consumedBytes) & RX_BUF_MASK;
+            const uint8_t syncByte = rxBuf_[idx];
+            if (syncByte != uart::SYNC_RECV) {
+                consumedBytes++;
+                continue;
             }
 
-            // Increment things
-            updateState(isByteValid);              // Packet state
-            curIdx_ = (curIdx_ + 1) % RX_BUF_SIZE; // Receiving buffer
+            // Check if we have full header
+            if (consumedBytes + HEADER_SIZE > newBytes) {
+                break;
+            }
+
+            const uint8_t payloadLen
+                = rxBuf_[(curIdxCache + consumedBytes + 2) & RX_BUF_MASK];
+            // Fail-fast: validate length before attempting to construct packet
+            if (payloadLen == 0 || payloadLen >= uart::DATA_MAX_SIZE) {
+                consumedBytes++;
+                continue;
+            }
+
+            const uint16_t packetLen
+                = static_cast<uint16_t>(HEADER_SIZE + payloadLen + 1);
+            // Check if complete packet is available
+            if (consumedBytes + packetLen > newBytes) {
+                break;
+            }
+
+            // Construct packet efficiently
+            uart::DataPacket_raw packet {};
+            packet.sync = syncByte;
+            packet.id   = static_cast<uart::ePacketID>(
+                rxBuf_[(curIdxCache + consumedBytes + 1) & RX_BUF_MASK]);
+            packet.length = payloadLen;
+
+            // Optimized payload copy: use memcpy when buffer doesn't wrap
+            const uint16_t dataStartIdx
+                = (curIdxCache + consumedBytes + HEADER_SIZE) & RX_BUF_MASK;
+            const uint16_t dataEndIdx = (dataStartIdx + payloadLen) & RX_BUF_MASK;
+
+            if (dataEndIdx > dataStartIdx) {
+                // No wrap-around: use fast memcpy
+                memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
+            } else {
+                // Wrap-around: copy in two parts
+                const uint16_t firstPart = RX_BUF_SIZE - dataStartIdx;
+                memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
+                memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
+            }
+            // Copy CRC byte
+            packet.data[payloadLen]
+                = rxBuf_[(curIdxCache + consumedBytes + packetLen - 1) & RX_BUF_MASK];
+
+            if (validatePacket(packet)) {
+                dataPacket_ = packet;
+                addToQueue();
+                consumedBytes += packetLen;
+                continue;
+            }
+
+            consumedBytes++;
         }
+
+        // Use bitwise AND instead of modulo
+        curIdx_ = (curIdxCache + consumedBytes) & RX_BUF_MASK;
     }
 
 
     void threadLoop(void *argument)
     {
-        if (argument) {
-        }
+        (void)argument; // Suppress unused parameter warning
 
         // Either waits for flags or timeout to trigger, then parse.
         while (isTaskRunning_) {
-            uint32_t flags
+            const uint32_t flags
                 = osThreadFlagsWait(FLAGS_VALUE, osFlagsWaitAny, FLAG_TIMEOUT_MS);
 
-            // If timed out, update DMA position (via polling)
+            // If timed out (no flags set), update DMA position via polling
             if (flags != FLAGS_VALUE) {
-
                 // Calculates how many bytes have been received in the DMA buffer
                 newIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
             }
@@ -244,9 +209,12 @@ namespace uart::recv {
     void init(UART_HandleTypeDef *huart)
     {
         assert(!isInitialized_);
-        huart_ = huart;
-        // TODO: Error Checking #1
-        packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        huart_       = huart;
+        packetQueue_ = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        if (packetQueue_ == nullptr) {
+            printf("Failed to create message queue\n\r");
+            return;
+        }
         isInitialized_ = true;
     }
 
@@ -262,12 +230,22 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
-        // TODO: Error Checking #2
-        HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
+        dataPacket_ = uart::DataPacket_raw {};
+        curIdx_     = 0;
+        newIdx_     = 0;
+
+        const HAL_StatusTypeDef status
+            = HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
+        if (status != HAL_OK) {
+            printf("Failed to start DMA receive (status=%d)\n\r", status);
+            return;
+        }
+
         isTaskRunning_ = true;
         taskHandle_    = osThreadNew(threadLoop, NULL, &task_att_);
         if (taskHandle_ == nullptr) {
             isTaskRunning_ = false;
+            HAL_UART_DMAStop(huart_);
             printf("Failed to create recv task (osThreadNew returned NULL)\n\r");
         }
     }
@@ -299,20 +277,14 @@ namespace uart::recv {
     bool dequeue(DataPacket_raw *packet, uint32_t timeout_ms)
     {
         assert(isInitialized_);
-        if (osMessageQueueGet(packetQueue_, packet, NULL, timeout_ms) == osOK) {
-            return true;
-        }
-        return false;
+        return osMessageQueueGet(packetQueue_, packet, NULL, timeout_ms) == osOK;
     }
 
 
     bool isQueueEmpty()
     {
         assert(isInitialized_);
-        if (osMessageQueueGetCount(packetQueue_) == 0) {
-            return true;
-        }
-        return false;
+        return osMessageQueueGetCount(packetQueue_) == 0;
     }
 
 
