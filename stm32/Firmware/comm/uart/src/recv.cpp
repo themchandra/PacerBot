@@ -2,7 +2,7 @@
  * @file recv.cpp
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-03-2026
  */
 
 #include "comm/uart/recv.h"
@@ -28,9 +28,9 @@ namespace {
     constexpr uint16_t RX_BUF_MASK {RX_BUF_SIZE - 1};
     uint8_t rxBuf_[RX_BUF_SIZE] {};
 
-    // Buffer tracking — volatile for sharing between ISR & thread.
-    volatile uint16_t curIdx_ {}; // Updated by parsing thread
-    volatile uint16_t newIdx_ {}; // Updated by DMA callback
+    // Buffer tracking
+    uint16_t curIdx_ {}; // Updated by parsing thread
+    uint16_t dmaIdx_ {}; // Updated by DMA callback
 
     // Dropped packet counter for observability
     uint32_t droppedPackets_ {};
@@ -58,24 +58,41 @@ namespace {
     /**
      * @brief Enqueue a validated packet onto the packet queue.
      * @param packet The validated packet to enqueue.
-     *
-     * Uses a zero timeout — if the queue is full the packet is dropped and
-     * droppedPackets_ is incremented rather than stalling the parsing thread.
      */
     void addToQueue(const uart::DataPacket_raw &packet)
     {
+        // Uses a zero timeout to avoid stalling
         const osStatus_t status
             = osMessageQueuePut(packetQueue_, &packet, 0, QUEUE_TIMEOUT_MS);
-        if (status != osOK) {
-            droppedPackets_++;
-            printf("Failed to queue packet — dropped (total dropped=%lu)\n\r",
-                   droppedPackets_);
+        if (status == osOK) {
+            return;
         }
+
+        // If full, drop the oldest packet and rety enqueue
+        if (status == osErrorResource) {
+            uart::DataPacket_raw discarded {};
+            const bool isDropped = uart::recv::dequeue(&discarded, QUEUE_TIMEOUT_MS);
+
+            if (isDropped) {
+                const osStatus_t retryStatus
+                    = osMessageQueuePut(packetQueue_, &packet, 0, QUEUE_TIMEOUT_MS);
+                if (retryStatus == osOK) {
+                    droppedPackets_++;
+                    printf("Queue full, dropped oldest (dropped=%lu)\n\r",
+                           droppedPackets_);
+                    return;
+                }
+            }
+        }
+
+        droppedPackets_++;
+        printf("Failed to queue packet (status=%d, dropped=%lu)\n\r",
+               static_cast<int>(status), droppedPackets_);
     }
 
 
     /**
-     * @brief Validate a candidate packet using the same rules as the Linux parser.
+     * @brief Validate a candidate packet
      * @param packet The candidate packet.
      * @return true if valid, false otherwise.
      */
@@ -104,28 +121,23 @@ namespace {
 
     void parseBuffer()
     {
-        // Cache volatile indices to avoid repeated volatile reads
-        const uint16_t curIdxCache = curIdx_;
-        const uint16_t newIdxCache = newIdx_;
-
         // Calculate available bytes in circular buffer
         uint16_t newBytes {};
-        if (curIdxCache <= newIdxCache) {
-            newBytes = newIdxCache - curIdxCache;
+        if (curIdx_ <= dmaIdx_) {
+            newBytes = dmaIdx_ - curIdx_; // Current index behind DMA
         } else {
-            newBytes = RX_BUF_SIZE - curIdxCache + newIdxCache;
+            newBytes = RX_BUF_SIZE - curIdx_ + dmaIdx_; // DMA index wrapped
         }
 
         if (newBytes == 0) {
             return;
         }
 
-        // Circular DMA, newBytes >= RX_BUF_SIZE means the DMA write head
-        // is faster than parser -> buffered data got overwritten
-        // Reset the read pointer to the current DMA position.
+        // newBytes >= RX_BUF_SIZE -> DMA write is ahead of reader
+        // Overflow, reset the read pointer to the current DMA position
         if (newBytes >= RX_BUF_SIZE) {
-            curIdx_ = newIdxCache;
-            printf("RX buffer overflow\n\r");
+            curIdx_ = dmaIdx_;
+            printf("recv buffer overflow\n\r");
             return;
         }
 
@@ -133,7 +145,7 @@ namespace {
         constexpr uint16_t HEADER_SIZE {3};
 
         while (consumedBytes < newBytes) {
-            const uint16_t idx     = (curIdxCache + consumedBytes) & RX_BUF_MASK;
+            const uint16_t idx     = (curIdx_ + consumedBytes) & RX_BUF_MASK;
             const uint8_t syncByte = rxBuf_[idx];
             if (syncByte != uart::SYNC_RECV) {
                 consumedBytes++;
@@ -146,7 +158,7 @@ namespace {
             }
 
             const uint8_t payloadLen
-                = rxBuf_[(curIdxCache + consumedBytes + 2) & RX_BUF_MASK];
+                = rxBuf_[(curIdx_ + consumedBytes + 2) & RX_BUF_MASK];
 
             // Fail-fast: validate length before attempting to construct packet
             if (payloadLen == 0 || payloadLen >= uart::DATA_MAX_SIZE) {
@@ -166,13 +178,13 @@ namespace {
             uart::DataPacket_raw packet {};
             packet.sync = syncByte;
             packet.id   = static_cast<uart::ePacketID>(
-                rxBuf_[(curIdxCache + consumedBytes + 1) & RX_BUF_MASK]);
+                rxBuf_[(curIdx_ + consumedBytes + 1) & RX_BUF_MASK]);
             packet.length = payloadLen;
 
             // Copy payload: use single memcpy when data doesn't wrap, otherwise
             // split into two copies across the buffer boundary
             const uint16_t dataStartIdx
-                = (curIdxCache + consumedBytes + HEADER_SIZE) & RX_BUF_MASK;
+                = (curIdx_ + consumedBytes + HEADER_SIZE) & RX_BUF_MASK;
             const uint16_t dataEndIdx = (dataStartIdx + payloadLen) & RX_BUF_MASK;
 
             if (dataEndIdx > dataStartIdx) {
@@ -187,7 +199,7 @@ namespace {
 
             // Copy CRC byte (last byte of the packet)
             packet.data[payloadLen]
-                = rxBuf_[(curIdxCache + consumedBytes + packetLen - 1) & RX_BUF_MASK];
+                = rxBuf_[(curIdx_ + consumedBytes + packetLen - 1) & RX_BUF_MASK];
 
             if (validatePacket(packet)) {
                 addToQueue(packet);
@@ -203,7 +215,7 @@ namespace {
         // Advance the read pointer by the number of bytes consumed.
         // If the loop brekas early from an incomplete packet, the unprocessed
         // bytes be available next iteration.
-        curIdx_ = (curIdxCache + consumedBytes) & RX_BUF_MASK;
+        curIdx_ = (curIdx_ + consumedBytes) & RX_BUF_MASK;
     }
 
 
@@ -212,13 +224,13 @@ namespace {
         (void)argument;
 
         while (isTaskRunning_) {
+            // Blocks until updateBufInd() is called
             const uint32_t flags
                 = osThreadFlagsWait(FLAGS_VALUE, osFlagsWaitAny, FLAG_TIMEOUT_MS);
 
-            // If timed out (no flags set), update DMA position via polling.
-            // This acts as a fallback in case the idle-line callback is missed.
+            // If timed out, update DMA position via polling
             if (flags != FLAGS_VALUE) {
-                newIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
+                dmaIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
             }
 
             parseBuffer();
@@ -254,7 +266,7 @@ namespace uart::recv {
     {
         assert(isInitialized_);
         curIdx_ = 0;
-        newIdx_ = 0;
+        dmaIdx_ = 0;
 
         const HAL_StatusTypeDef status
             = HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
@@ -293,7 +305,7 @@ namespace uart::recv {
     void updateBufInd(uint16_t index)
     {
         assert(isInitialized_);
-        newIdx_ = index;
+        dmaIdx_ = index;
         osThreadFlagsSet(taskHandle_, FLAGS_VALUE);
     }
 

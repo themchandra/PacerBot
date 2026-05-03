@@ -2,7 +2,7 @@
  * @file send.cpp
  * @brief Handles data transmission via UART DMA
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-03-2026
  */
 
 #include "comm/uart/send.h"
@@ -60,7 +60,8 @@ namespace {
                 != osOK) {
                 continue;
             }
-
+            
+            // Transmit data
             const HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(
                 huart_, reinterpret_cast<uint8_t *>(&sendPacket), sendPacket.totalSize());
             if (ret != HAL_OK) {
@@ -104,7 +105,6 @@ namespace uart::send {
     }
 
 
-    // Thread management
     void start()
     {
         assert(isInitialized_);
@@ -133,7 +133,6 @@ namespace uart::send {
     }
 
 
-    // Signals UART transmit is completed
     void handleTxComplete(UART_HandleTypeDef *huart)
     {
         if (huart == huart_ && taskHandle_ != nullptr) {
@@ -141,7 +140,7 @@ namespace uart::send {
         }
     }
 
-    // Build and enqueue a packet
+
     static void enqueue_packet(uart::ePacketID id, const void *payload, uint8_t len)
     {
         uart::DataPacket_raw packet {};
@@ -163,8 +162,7 @@ namespace uart::send {
     }
 
 
-    // Enqueuing data
-    void enqueue_IMU(IMU_data data)
+    void enqueue_imu(IMU_data data)
     {
         assert(isInitialized_);
         enqueue_packet(ePacketID::TELEM_IMU, &data, sizeof(IMU_data));
