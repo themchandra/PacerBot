@@ -92,31 +92,46 @@ namespace {
 
 
     /**
-     * @brief Validate a candidate packet
-     * @param packet The candidate packet.
+     * @brief Construct and validate a packet.
+     * @details Assumes sync, length, and ID were already checked by the parser.
+     * @param packet The packet to fill.
+     * @param startIdx The buffer index of the sync byte.
+     * @param packetId The packet ID byte.
+     * @param payloadLen The payload length.
      * @return true if valid, false otherwise.
      */
-    bool validatePacket(const uart::DataPacket_raw &packet)
+    bool constructAndValidate(uart::DataPacket_raw &packet, uint16_t startIdx,
+                              uint8_t packetId, uint8_t payloadLen)
     {
-        if (packet.sync != uart::SYNC_RECV) {
-            return false;
+        // ---- Packet construction ----
+        constexpr uint16_t HEADER_SIZE {3};
+
+        // Header
+        packet.sync   = rxBuf_[startIdx];
+        packet.id     = static_cast<uart::ePacketID>(packetId);
+        packet.length = payloadLen;
+
+        // Copy data
+        const uint16_t dataStartIdx = (startIdx + HEADER_SIZE) & RX_BUF_MASK;
+        const uint16_t dataEndIdx   = (dataStartIdx + payloadLen) & RX_BUF_MASK;
+        if (dataEndIdx > dataStartIdx) {
+            // No wrap-around
+            memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
+        } else {
+            // Wrap-around: copy in two parts
+            const uint16_t firstPart = RX_BUF_SIZE - dataStartIdx;
+            memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
+            memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
         }
 
-        const auto packetId = static_cast<uint8_t>(packet.id);
-        if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
-            || packetId >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
-            return false;
-        }
+        // Copy CRC byte (last byte of the packet)
+        packet.data[payloadLen] = rxBuf_[(dataStartIdx + payloadLen) & RX_BUF_MASK];
 
-        // TODO: Check if this is valid for ACK ids as that use 0 length payloads
-        if (packet.length == 0 || packet.length >= uart::DATA_MAX_SIZE) {
-            return false;
-        }
-
+        // ---- Validation ----
         const auto *rawBytes = reinterpret_cast<const uint8_t *>(&packet);
         const uint8_t expectedCRC
             = uart::calculate_crc8(rawBytes, packet.totalSize() - 1);
-        return packet.data[packet.length] == expectedCRC;
+        return packet.data[payloadLen] == expectedCRC;
     }
 
 
@@ -147,6 +162,16 @@ namespace {
 
         while (consumedBytes < newBytes) {
             // ---- Check if a full packet is available ----
+            // 1. Consume bytes until sync byte
+            // 2. From sync byte, begin checking packet validity
+            //  - Sync byte
+            //  - ID
+            //  - Length
+            // 3. Verify Checksum
+            // Note: Once a sync byte is found, only increment consumedBytes only if
+            //       the packet itself is invalid
+            // Note 2: If the number of remaining bytes is not enough for a full packet,
+            //         don't update curIdx and stop checking validity/verification
             const uint16_t idx     = (curIdx_ + consumedBytes) & RX_BUF_MASK;
             const uint8_t syncByte = rxBuf_[idx];
 
@@ -170,6 +195,13 @@ namespace {
                 continue; // Invalid, go back to finding the next sync byte
             }
 
+            const uint8_t packetId = rxBuf_[(curIdx_ + consumedBytes + 1) & RX_BUF_MASK];
+            if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
+                || packetId >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
+                consumedBytes++;
+                continue; // Invalid, go back to finding the next sync byte
+            }
+
             const uint16_t packetLen
                 = static_cast<uint16_t>(HEADER_SIZE + payloadLen + 1);
 
@@ -178,34 +210,10 @@ namespace {
             }
 
             // ---- A full packet is available, attempt validation ----
-            // Construct packet
             uart::DataPacket_raw packet {};
-            packet.sync = syncByte;
-            packet.id   = static_cast<uart::ePacketID>(
-                rxBuf_[(curIdx_ + consumedBytes + 1) & RX_BUF_MASK]);
-            packet.length = payloadLen;
+            const uint16_t startIdx = (curIdx_ + consumedBytes) & RX_BUF_MASK;
 
-            // Copy payload: use single memcpy when data doesn't wrap, otherwise
-            // split into two copies across the buffer boundary
-            const uint16_t dataStartIdx
-                = (curIdx_ + consumedBytes + HEADER_SIZE) & RX_BUF_MASK;
-            const uint16_t dataEndIdx = (dataStartIdx + payloadLen) & RX_BUF_MASK;
-
-            if (dataEndIdx > dataStartIdx) {
-                // No wrap-around
-                memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
-            } else {
-                // Wrap-around: copy in two parts
-                const uint16_t firstPart = RX_BUF_SIZE - dataStartIdx;
-                memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
-                memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
-            }
-
-            // Copy CRC byte (last byte of the packet)
-            packet.data[payloadLen]
-                = rxBuf_[(curIdx_ + consumedBytes + packetLen - 1) & RX_BUF_MASK];
-
-            if (validatePacket(packet)) {
+            if (constructAndValidate(packet, startIdx, packetId, payloadLen)) {
                 addToQueue(packet);
                 consumedBytes += packetLen;
                 continue;
