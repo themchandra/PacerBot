@@ -72,7 +72,7 @@ namespace {
 
         // Validate packet ID is in valid range
         const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
-        if (packetId >= uart::ePacketID::TOTAL) {
+        if (packetId >= uart::ePacketID::STM32_DEBUG) {
             return -1; // Invalid packet ID
         }
 
@@ -80,14 +80,6 @@ namespace {
         const uint8_t payloadLen = buffer[startIdx + 2];
         if (payloadLen >= uart::DATA_MAX_SIZE) {
             return -1; // Payload length out of bounds
-        }
-
-        // Validate special rule: zero-length packets must be ACK packets
-        if (payloadLen == 0) {
-            if (packetId != uart::ePacketID::RAD_ACK
-                && packetId != uart::ePacketID::STM32_ACK) {
-                return -1; // Invalid zero-length non-ACK packet
-            }
         }
 
         const size_t packetLen = uart::HEADER_SIZE + payloadLen + uart::CRC_SIZE;
@@ -135,7 +127,6 @@ namespace {
                 auto packet      = uart::DataPacket::deserialize(
                     streamBuffer_.data() + syncIdx, packetLen);
                 if (packet.has_value()) {
-                    // Valid packet - publish to all subscribers
                     publish(packet.value());
                     processedIdx = syncIdx + packetLen;
                 } else {

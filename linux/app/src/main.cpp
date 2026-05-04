@@ -21,7 +21,7 @@ void test()
         std::string str = "Hello world " + std::to_string(counter++);
 
         auto packet = uart::DataPacket(
-            uart::ePacketID::RAD_ACK,
+            uart::ePacketID::HOST_ACK,
             std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str.data()),
                                      str.size()));
         uart::send::enqueue(std::move(packet));

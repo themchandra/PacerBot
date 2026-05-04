@@ -43,8 +43,8 @@ namespace uart {
         CONF_PID_SPEED, // Tune speed PID
         CONF_PID_LANE,  // Tune laning PID
         CONF_SENSOR,    // Configure sensor data rate
-        RAD_STATUS,     // Status of the Host
-        RAD_ACK,        // Confirm receipt from Host
+        HOST_STATUS,    // Status of the Host
+        HOST_ACK,       // Confirm receipt from Host
 
         TOTAL,
     };
@@ -72,7 +72,7 @@ namespace uart {
         // Convert DataPacket to a uint8_t buffer for UART transmission
         size_t serialize(uint8_t *buf, size_t buf_size) const;
 
-        // Convert UART raw data to DataPacket class only if its valid
+        // Convert UART raw data to a DataPacket class if valid
         static std::optional<DataPacket> deserialize(const uint8_t *rawData,
                                                      size_t length);
 
