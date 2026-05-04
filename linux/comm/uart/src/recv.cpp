@@ -47,6 +47,28 @@ namespace {
         }
     }
 
+    std::string hexByte(uint8_t byte)
+    {
+        std::ostringstream oss;
+        oss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+            << static_cast<int>(byte);
+        return oss.str();
+    }
+
+    std::string hexBytes(const uint8_t *buf, size_t len)
+    {
+        std::ostringstream oss;
+        for (size_t i = 0; i < len && i < 32; ++i) {
+            if (i > 0)
+                oss << " ";
+            oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
+                << static_cast<int>(buf[i]);
+        }
+        if (len > 32)
+            oss << " ...";
+        return oss.str();
+    }
+
 
     void publish(const uart::DataPacket &packet)
     {
@@ -77,18 +99,18 @@ namespace {
             return 0; // Incomplete
         }
 
-        // Validate sync byte
+        // Validate sync byte - accept both SYNC_RECV (0x5A) and SYNC_SEND (0xA5)
+        // for loopback testing. deserialize() will enforce SYNC_RECV for actual STM32
+        // packets.
         const uint8_t syncByte = buffer[startIdx];
-        if (syncByte != uart::SYNC_RECV) {
+        if (syncByte != uart::SYNC_RECV && syncByte != uart::SYNC_SEND) {
             debugLog("validateData: invalid sync byte at index "
-                     + std::to_string(startIdx) + ", got=0x" + [&]() {
-                           std::ostringstream oss;
-                           oss << std::hex << std::uppercase
-                               << static_cast<int>(syncByte);
-                           return oss.str();
-                       }());
+                     + std::to_string(startIdx) + ", got=" + hexByte(syncByte));
             return -1; // Invalid
         }
+        debugLog("validateData: valid sync byte " + hexByte(syncByte) + " at index "
+                 + std::to_string(startIdx));
+
 
         // Validate packet ID is in valid range
         const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
@@ -149,9 +171,13 @@ namespace {
             // Calculate index of sync byte relative to buffer start
             size_t syncIdx      = std::distance(streamBuffer_.begin(), syncByteIter);
             size_t remainingLen = streamBuffer_.size() - syncIdx;
+            uint8_t syncByte    = streamBuffer_[syncIdx];
 
-            debugLog("parseBuffer: sync byte found at index " + std::to_string(syncIdx)
-                     + ", remaining=" + std::to_string(remainingLen));
+            debugLog("parseBuffer: sync byte " + hexByte(syncByte) + " found at index "
+                     + std::to_string(syncIdx)
+                     + ", remaining=" + std::to_string(remainingLen) + ", next 4 bytes: "
+                     + hexBytes(streamBuffer_.data() + syncIdx,
+                                std::min(size_t(4), remainingLen)));
 
             // Validate packet from the sync byte
             int validationResult
@@ -204,8 +230,8 @@ namespace {
         while (isThreadRunning_) {
             ssize_t bytesRead = uartPtr_->readData(readBuf.data(), readBuf.size());
             if (bytesRead > 0) {
-                debugLog("thread_loop: read " + std::to_string(bytesRead)
-                         + " bytes, buffer before append="
+                debugLog("thread_loop: read " + std::to_string(bytesRead) + " bytes: "
+                         + hexBytes(readBuf.data(), bytesRead) + ", buffer before append="
                          + std::to_string(streamBuffer_.size()));
                 streamBuffer_.insert(streamBuffer_.end(), readBuf.begin(),
                                      readBuf.begin() + bytesRead);
