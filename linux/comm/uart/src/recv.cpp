@@ -23,8 +23,6 @@
 namespace {
     bool isInitialized_ {false};
 
-    constexpr bool kDebugRecv {true};
-
     // Shared pointer to the serial port
     std::shared_ptr<SerialUART> uartPtr_ {nullptr};
 
@@ -38,36 +36,6 @@ namespace {
     // Threading
     std::atomic_bool isThreadRunning_ {false};
     std::thread thread_;
-
-
-    void debugLog(const std::string &message)
-    {
-        if (kDebugRecv) {
-            std::cerr << "[uart::recv] " << message << '\n';
-        }
-    }
-
-    std::string hexByte(uint8_t byte)
-    {
-        std::ostringstream oss;
-        oss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-            << static_cast<int>(byte);
-        return oss.str();
-    }
-
-    std::string hexBytes(const uint8_t *buf, size_t len)
-    {
-        std::ostringstream oss;
-        for (size_t i = 0; i < len && i < 32; ++i) {
-            if (i > 0)
-                oss << " ";
-            oss << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-                << static_cast<int>(buf[i]);
-        }
-        if (len > 32)
-            oss << " ...";
-        return oss.str();
-    }
 
 
     void publish(const uart::DataPacket &packet)
@@ -93,9 +61,6 @@ namespace {
     {
         // Need at least header (3 bytes: sync, id, len)
         if (dataLen < uart::HEADER_SIZE) {
-            debugLog("validateData: incomplete header at index "
-                     + std::to_string(startIdx)
-                     + ", available=" + std::to_string(dataLen));
             return 0; // Incomplete
         }
 
@@ -104,29 +69,19 @@ namespace {
         // packets.
         const uint8_t syncByte = buffer[startIdx];
         if (syncByte != uart::SYNC_RECV && syncByte != uart::SYNC_SEND) {
-            debugLog("validateData: invalid sync byte at index "
-                     + std::to_string(startIdx) + ", got=" + hexByte(syncByte));
             return -1; // Invalid
         }
-        debugLog("validateData: valid sync byte " + hexByte(syncByte) + " at index "
-                 + std::to_string(startIdx));
 
 
         // Validate packet ID is in valid range
         const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
         if (packetId >= uart::ePacketID::TOTAL) {
-            debugLog("validateData: invalid packet ID at index "
-                     + std::to_string(startIdx)
-                     + ", got=" + std::to_string(static_cast<int>(buffer[startIdx + 1])));
             return -1; // Invalid packet ID
         }
 
         // Extract and validate payload length
         const uint8_t payloadLen = buffer[startIdx + 2];
         if (payloadLen >= uart::DATA_MAX_SIZE) {
-            debugLog("validateData: invalid payload length at index "
-                     + std::to_string(startIdx)
-                     + ", len=" + std::to_string(static_cast<int>(payloadLen)));
             return -1; // Payload length out of bounds
         }
 
@@ -134,9 +89,6 @@ namespace {
 
         // Check if we have the complete packet
         if (dataLen < packetLen) {
-            debugLog("validateData: incomplete packet at index "
-                     + std::to_string(startIdx) + ", need=" + std::to_string(packetLen)
-                     + ", have=" + std::to_string(dataLen));
             return 0; // Incomplete
         }
 
@@ -150,8 +102,6 @@ namespace {
             return;
         }
 
-        debugLog("parseBuffer: buffer size=" + std::to_string(streamBuffer_.size()));
-
         size_t processedIdx {0};
         bool keepParsing {true};
 
@@ -161,8 +111,6 @@ namespace {
                                           streamBuffer_.end(), uart::SYNC_RECV);
             if (syncByteIter == streamBuffer_.end()) {
                 // No more sync bytes found, discard all processed junk
-                debugLog("parseBuffer: no sync byte found after index "
-                         + std::to_string(processedIdx));
                 processedIdx = streamBuffer_.size();
                 keepParsing  = false;
                 continue;
@@ -171,13 +119,6 @@ namespace {
             // Calculate index of sync byte relative to buffer start
             size_t syncIdx      = std::distance(streamBuffer_.begin(), syncByteIter);
             size_t remainingLen = streamBuffer_.size() - syncIdx;
-            uint8_t syncByte    = streamBuffer_[syncIdx];
-
-            debugLog("parseBuffer: sync byte " + hexByte(syncByte) + " found at index "
-                     + std::to_string(syncIdx)
-                     + ", remaining=" + std::to_string(remainingLen) + ", next 4 bytes: "
-                     + hexBytes(streamBuffer_.data() + syncIdx,
-                                std::min(size_t(4), remainingLen)));
 
             // Validate packet from the sync byte
             int validationResult
@@ -186,38 +127,27 @@ namespace {
             if (validationResult > 0) {
                 // Valid packet - deserialize and process
                 size_t packetLen = static_cast<size_t>(validationResult);
-                debugLog("parseBuffer: candidate packet length="
-                         + std::to_string(packetLen));
-                auto packet = uart::DataPacket::deserialize(
+                auto packet      = uart::DataPacket::deserialize(
                     streamBuffer_.data() + syncIdx, packetLen);
                 if (packet.has_value()) {
-                    debugLog("parseBuffer: deserialize succeeded, publishing packet");
                     publish(packet.value());
                     processedIdx = syncIdx + packetLen;
                 } else {
                     // Deserialize failed (CRC error) - skip this bad sync byte
-                    debugLog("parseBuffer: deserialize failed at index "
-                             + std::to_string(syncIdx));
                     processedIdx = syncIdx + 1;
                 }
             } else if (validationResult == 0) {
                 // Incomplete packet - wait for more data
-                debugLog("parseBuffer: packet incomplete at index "
-                         + std::to_string(syncIdx) + ", waiting for more data");
                 processedIdx = syncIdx; // Keep unprocessed data
                 keepParsing  = false;
             } else {
                 // Invalid packet, skip bad sync byte
-                debugLog("parseBuffer: invalid packet at index " + std::to_string(syncIdx)
-                         + ", skipping sync byte");
                 processedIdx = syncIdx + 1;
             }
         }
 
         // Remove all processed bytes in buffer
         if (processedIdx > 0) {
-            debugLog("parseBuffer: erasing " + std::to_string(processedIdx)
-                     + " processed bytes");
             streamBuffer_.erase(streamBuffer_.begin(),
                                 streamBuffer_.begin() + processedIdx);
         }
@@ -230,18 +160,9 @@ namespace {
         while (isThreadRunning_) {
             ssize_t bytesRead = uartPtr_->readData(readBuf.data(), readBuf.size());
             if (bytesRead > 0) {
-                debugLog("thread_loop: read " + std::to_string(bytesRead) + " bytes: "
-                         + hexBytes(readBuf.data(), bytesRead) + ", buffer before append="
-                         + std::to_string(streamBuffer_.size()));
                 streamBuffer_.insert(streamBuffer_.end(), readBuf.begin(),
                                      readBuf.begin() + bytesRead);
-                debugLog("thread_loop: buffer after append="
-                         + std::to_string(streamBuffer_.size()));
                 parseBuffer();
-            } else if (bytesRead == 0) {
-                debugLog("thread_loop: read timeout / no data");
-            } else {
-                debugLog("thread_loop: read error " + std::to_string(bytesRead));
             }
         }
     }
@@ -258,8 +179,6 @@ namespace uart::recv {
         uartPtr_ = uartPtr;
         assert(uartPtr_ != nullptr);
 
-        debugLog("init: receiver initialized");
-
         isInitialized_ = true;
     }
 
@@ -267,7 +186,6 @@ namespace uart::recv {
     void deinit()
     {
         assert(isInitialized_);
-        debugLog("deinit: receiver shutting down");
         stop();
         {
             std::lock_guard<std::mutex> lock(sub_mtx_);
@@ -285,7 +203,6 @@ namespace uart::recv {
     void start()
     {
         assert(isInitialized_);
-        debugLog("start: receiver thread starting");
         isThreadRunning_ = true;
         thread_          = std::thread(thread_loop);
     }
@@ -294,7 +211,6 @@ namespace uart::recv {
     void stop()
     {
         assert(isInitialized_);
-        debugLog("stop: receiver thread stopping");
         isThreadRunning_ = false;
         if (thread_.joinable()) {
             thread_.join();
