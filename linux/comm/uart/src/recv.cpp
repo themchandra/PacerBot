@@ -51,41 +51,42 @@ namespace {
 
     /**
      * @brief Check whether a packet candidate is valid.
+     * @param buffer Packet data to validate against.
      * @param startIdx Buffer index of the candidate sync byte.
      * @param dataLen Remaining bytes available from startIdx.
-     * @return -2 if invalid, -1 if the packet is incomplete, or the packet
+     * @return -1 if invalid, 0 if the packet is incomplete, or the packet
      *         length if the packet is valid.
      */
-    int validateData(size_t startIdx, size_t dataLen)
+    int validateData(const uint8_t *buffer, size_t startIdx, size_t dataLen)
     {
         // Need at least header (3 bytes: sync, id, len)
         if (dataLen < uart::HEADER_SIZE) {
-            return -1; // Incomplete
+            return 0; // Incomplete
         }
 
         // Validate sync byte
-        const uint8_t syncByte = streamBuffer_[startIdx];
+        const uint8_t syncByte = buffer[startIdx];
         if (syncByte != uart::SYNC_RECV) {
-            return -2; // Invalid
+            return -1; // Invalid
         }
 
         // Validate packet ID is in valid range
-        const auto packetId = static_cast<uart::ePacketID>(streamBuffer_[startIdx + 1]);
+        const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
         if (packetId >= uart::ePacketID::TOTAL) {
-            return -2; // Invalid packet ID
+            return -1; // Invalid packet ID
         }
 
         // Extract and validate payload length
-        const uint8_t payloadLen = streamBuffer_[startIdx + 2];
+        const uint8_t payloadLen = buffer[startIdx + 2];
         if (payloadLen >= uart::DATA_MAX_SIZE) {
-            return -2; // Payload length out of bounds
+            return -1; // Payload length out of bounds
         }
 
         // Validate special rule: zero-length packets must be ACK packets
         if (payloadLen == 0) {
             if (packetId != uart::ePacketID::RAD_ACK
                 && packetId != uart::ePacketID::STM32_ACK) {
-                return -2; // Invalid zero-length non-ACK packet
+                return -1; // Invalid zero-length non-ACK packet
             }
         }
 
@@ -93,7 +94,7 @@ namespace {
 
         // Check if we have the complete packet
         if (dataLen < packetLen) {
-            return 1; // Incomplete
+            return 0; // Incomplete
         }
 
         // Return packet length on success
@@ -106,26 +107,29 @@ namespace {
             return;
         }
 
-        size_t processedIdx{0};
+        size_t processedIdx {0};
+        bool keepParsing {true};
 
-        while (true) {
-            // Search for sync byte starting from processedBytes offset
+        while (keepParsing) {
+            // Search for sync byte starting from processedIdx offset
             auto syncByteIter = std::find(streamBuffer_.begin() + processedIdx,
                                           streamBuffer_.end(), uart::SYNC_RECV);
             if (syncByteIter == streamBuffer_.end()) {
                 // No more sync bytes found, discard all processed junk
                 processedIdx = streamBuffer_.size();
-                break;
+                keepParsing  = false;
+                continue;
             }
 
             // Calculate index of sync byte relative to buffer start
             size_t syncIdx      = std::distance(streamBuffer_.begin(), syncByteIter);
             size_t remainingLen = streamBuffer_.size() - syncIdx;
 
-            // Validate packet from the sync byte 
-            int validationResult = validateData(syncIdx, remainingLen);
+            // Validate packet from the sync byte
+            int validationResult
+                = validateData(streamBuffer_.data(), syncIdx, remainingLen);
 
-            if (validationResult >= 0) {
+            if (validationResult > 0) {
                 // Valid packet - deserialize and process
                 size_t packetLen = static_cast<size_t>(validationResult);
                 auto packet      = uart::DataPacket::deserialize(
@@ -138,12 +142,12 @@ namespace {
                     // Deserialize failed (CRC error) - skip this bad sync byte
                     processedIdx = syncIdx + 1;
                 }
-            } else if (validationResult == -1) {
+            } else if (validationResult == 0) {
                 // Incomplete packet - wait for more data
                 processedIdx = syncIdx; // Keep unprocessed data
-                break;
+                keepParsing  = false;
             } else {
-                // Invalid packet (validationResult == -1) - skip bad sync byte
+                // Invalid packet, skip bad sync byte
                 processedIdx = syncIdx + 1;
             }
         }
@@ -158,18 +162,13 @@ namespace {
 
     void thread_loop()
     {
+        std::array<uint8_t, uart::config::READ_BUF_SIZE> readBuf;
         while (isThreadRunning_) {
-            const size_t oldSize {streamBuffer_.size()};
-
-            streamBuffer_.resize(oldSize + uart::config::READ_BUF_SIZE);
-
-            ssize_t bytesRead = uartPtr_->readData(streamBuffer_.data() + oldSize,
-                                                   uart::config::READ_BUF_SIZE);
+            ssize_t bytesRead = uartPtr_->readData(readBuf.data(), readBuf.size());
             if (bytesRead > 0) {
-                streamBuffer_.resize(oldSize + static_cast<size_t>(bytesRead));
+                streamBuffer_.insert(streamBuffer_.end(), readBuf.begin(),
+                                     readBuf.begin() + bytesRead);
                 parseBuffer();
-            } else {
-                streamBuffer_.resize(oldSize);
             }
         }
     }
@@ -193,6 +192,12 @@ namespace uart::recv {
     void deinit()
     {
         assert(isInitialized_);
+        stop();
+        {
+            std::lock_guard<std::mutex> lock(sub_mtx_);
+            subscribers_.clear();
+        }
+        streamBuffer_.clear();
 
         // Releases ownership of object
         uartPtr_.reset();
@@ -213,7 +218,9 @@ namespace uart::recv {
     {
         assert(isInitialized_);
         isThreadRunning_ = false;
-        thread_.join();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
     }
 
 
