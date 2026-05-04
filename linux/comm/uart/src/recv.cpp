@@ -114,7 +114,7 @@ namespace {
 
         // Validate packet ID is in valid range
         const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
-        if (packetId >= uart::ePacketID::STM32_DEBUG) {
+        if (packetId >= uart::ePacketID::TOTAL) {
             debugLog("validateData: invalid packet ID at index "
                      + std::to_string(startIdx)
                      + ", got=" + std::to_string(static_cast<int>(buffer[startIdx + 1])));
