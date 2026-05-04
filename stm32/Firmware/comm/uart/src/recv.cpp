@@ -21,7 +21,7 @@ namespace {
 
     constexpr int32_t FLAGS_VALUE {0x01};
     constexpr uint32_t FLAG_TIMEOUT_MS {10};
-    constexpr uint32_t QUEUE_TIMEOUT_MS {0}; // Non-blocking put
+    constexpr uint32_t QUEUE_TIMEOUT_MS {0}; // Non-Blocking put
 
     // Receiving buffers
     constexpr uint16_t RX_BUF_SIZE {1024};
@@ -71,7 +71,9 @@ namespace {
         // If full, drop the oldest packet and rety enqueue
         if (status == osErrorResource) {
             uart::DataPacket_raw discarded {};
-            const bool isDropped = uart::recv::dequeue(&discarded, QUEUE_TIMEOUT_MS);
+            const bool isDropped
+                = (osMessageQueueGet(packetQueue_, &discarded, NULL, QUEUE_TIMEOUT_MS)
+                   == osOK);
 
             if (isDropped) {
                 const osStatus_t retryStatus
@@ -92,6 +94,26 @@ namespace {
 
 
     /**
+     * @brief Calculate CRC8 over a wrapped region in the RX buffer.
+     * @param startIdx Buffer index to start from.
+     * @param length Number of bytes to checksum.
+     * @return CRC8 value for the wrapped region.
+     */
+    uint8_t calculateWrappedCrc(uint16_t startIdx, uint16_t length)
+    {
+        const uint16_t bytesUntilWrap = RX_BUF_SIZE - startIdx;
+        if (length <= bytesUntilWrap) {
+            // No wrap
+            return uart::calculate_crc8(&rxBuf_[startIdx], length);
+        }
+
+        // Wrap: two contiguous regions
+        const uint8_t crc = uart::calculate_crc8(&rxBuf_[startIdx], bytesUntilWrap);
+        return uart::calculate_crc8(rxBuf_, length - bytesUntilWrap, crc);
+    }
+
+
+    /**
      * @brief Construct and verify checksum.
      * @details Assumes sync, length, and ID were already checked by the parser.
      * @param packet The packet to fill.
@@ -100,22 +122,31 @@ namespace {
      * @param payloadLen The payload length.
      * @return true if valid, false otherwise.
      */
-    bool constructAndVerify(uart::DataPacket_raw &packet, uint16_t startIdx,
-                            uint8_t packetId, uint8_t payloadLen)
+    bool verifyAndConstruct(uart::DataPacket_raw &packet, uint16_t startIdx,
+                            uint8_t syncByte, uint8_t packetId, uint8_t payloadLen)
     {
-        // ---- Packet construction ----
-        constexpr uint16_t HEADER_SIZE {3};
+        const uint16_t packetLen
+            = static_cast<uint16_t>(uart::HEADER_SIZE + payloadLen + uart::CRC_SIZE);
+        const uint16_t crcIdx = (startIdx + packetLen - uart::CRC_SIZE) & RX_BUF_MASK;
 
+        // Calculate CRC over the entire packet (excluding the CRC byte itself)
+        const uint8_t expectedCRC
+            = calculateWrappedCrc(startIdx, packetLen - uart::CRC_SIZE);
+
+        if (rxBuf_[crcIdx] != expectedCRC) {
+            return false;
+        }
+
+        // ---- Packet construction ----
         // Header
-        packet.sync   = rxBuf_[startIdx];
+        packet.sync   = syncByte;
         packet.id     = static_cast<uart::ePacketID>(packetId);
         packet.length = payloadLen;
-
-        const uint16_t dataStartIdx = (startIdx + HEADER_SIZE) & RX_BUF_MASK;
-        const uint16_t dataEndIdx   = (dataStartIdx + payloadLen) & RX_BUF_MASK;
-
         // Copy payload into packet data array for non ACK packets
         if (payloadLen > 0) {
+            const uint16_t dataStartIdx = (startIdx + uart::HEADER_SIZE) & RX_BUF_MASK;
+            const uint16_t dataEndIdx   = (dataStartIdx + payloadLen) & RX_BUF_MASK;
+
             if (dataEndIdx > dataStartIdx) {
                 // No wrap-around
                 memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
@@ -126,15 +157,9 @@ namespace {
                 memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
             }
         }
+        packet.data[payloadLen] = rxBuf_[crcIdx];
 
-        // Copy CRC byte (last byte of the packet)
-        packet.data[payloadLen] = rxBuf_[(dataStartIdx + payloadLen) & RX_BUF_MASK];
-
-        // ---- Validation ----
-        const auto *rawBytes = reinterpret_cast<const uint8_t *>(&packet);
-        const uint8_t expectedCRC
-            = uart::calculate_crc8(rawBytes, packet.totalSize() - 1);
-        return packet.data[payloadLen] == expectedCRC;
+        return true;
     }
 
 
@@ -145,7 +170,7 @@ namespace {
      * @return -1 if invalid, 0 if the packet is incomplete, or the packet
      *         length if the packet is valid.
      */
-    int16_t validateData(uint16_t startIdx, int dataLen)
+    int16_t validateData(uint16_t startIdx, uint16_t dataLen)
     {
         const uint8_t syncByte = rxBuf_[startIdx];
 
@@ -183,9 +208,9 @@ namespace {
 
         // A full packet is available, build packet & verify checksum
         uart::DataPacket_raw packet {};
-        if (constructAndVerify(packet, startIdx, packetId, payloadLen)) {
+        if (verifyAndConstruct(packet, startIdx, syncByte, packetId, payloadLen)) {
             addToQueue(packet);
-            return packetLen;
+            return static_cast<int16_t>(packetLen);
         } else {
             return -1; // Assume data is invalid
         }
@@ -194,12 +219,14 @@ namespace {
 
     void parseBuffer()
     {
+        const uint16_t dmaIdx = dmaIdx_;
+
         // Calculate available bytes in circular buffer
         uint16_t newBytes {};
-        if (curIdx_ <= dmaIdx_) {
-            newBytes = dmaIdx_ - curIdx_; // Current index behind DMA
+        if (curIdx_ <= dmaIdx) {
+            newBytes = dmaIdx - curIdx_; // Current index behind DMA
         } else {
-            newBytes = RX_BUF_SIZE - curIdx_ + dmaIdx_; // DMA index wrapped
+            newBytes = RX_BUF_SIZE - curIdx_ + dmaIdx; // DMA index wrapped
         }
 
         if (newBytes == 0) {
@@ -209,7 +236,7 @@ namespace {
         // newBytes >= RX_BUF_SIZE -> DMA write is ahead of reader
         // Overflow, reset the read pointer to the current DMA position
         if (newBytes >= RX_BUF_SIZE) {
-            curIdx_ = dmaIdx_;
+            curIdx_ = dmaIdx;
             printf("recv buffer overflow\n\r");
             return;
         }
@@ -223,7 +250,7 @@ namespace {
                 consumedBytes++; // Skip to the next sync byte
 
             } else if (validBytes == 0) {
-                newBytes = 0; // Stop & wait for next callback
+                break; // Stop & wait for next callback
 
             } else {
                 consumedBytes += validBytes; // Advanced indexer to next unread byte

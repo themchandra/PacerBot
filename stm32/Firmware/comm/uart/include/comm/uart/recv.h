@@ -2,12 +2,13 @@
  * @file recv.h
  * @brief Handles incoming packets from UART using DMA IDLE
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date May-03-2026
  */
 
 #ifndef COMM_UART_RECV_H_
 #define COMM_UART_RECV_H_
 
+#include "cmsis_os.h"
 #include "comm/uart/packet_info.h"
 #include "stm32f4xx_hal.h"
 
@@ -32,7 +33,13 @@ namespace uart::recv {
     void updateBufInd(uint16_t index);
 
     // Publisher Queue management
-    bool dequeue(DataPacket_raw *packet, uint32_t timeout_ms);
+    /**
+     * @brief Dequeue a validated packet from the message queue.
+     * @param packet Pointer to packet structure to fill.
+     * @param timeout_ms Timeout in milliseconds (osWaitForever: wait indefinitely).
+     * @return true if packet was dequeued, false otherwise.
+     */
+    bool dequeue(DataPacket_raw *packet, uint32_t timeout_ms = osWaitForever);
     bool isQueueEmpty();
     uint32_t getQueueCount();
 

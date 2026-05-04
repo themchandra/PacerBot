@@ -2,13 +2,13 @@
  * @file packet_info.cpp
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-03-2026
  */
 
 #include "comm/uart/packet_info.h"
 
 namespace uart {
-    uint8_t calculate_crc8(const uint8_t *data, uint16_t length)
+    uint8_t calculate_crc8(const uint8_t *data, uint16_t length, uint8_t crc)
     {
         // Using CRC8 Opensafety (0x2F)
         const uint8_t CRC8_TABLE[256] = {
@@ -33,7 +33,6 @@ namespace uart {
             0x7F, 0x50, 0x9D, 0xB2, 0xC3, 0xEC, 0xD8, 0xF7, 0x86, 0xA9, 0x64, 0x4B, 0x3A,
             0x15, 0x8F, 0xA0, 0xD1, 0xFE, 0x33, 0x1C, 0x6D, 0x42};
 
-        uint8_t crc = 0x00;
         for (uint16_t i = 0; i < length; i++) {
             crc = CRC8_TABLE[crc ^ data[i]];
         }

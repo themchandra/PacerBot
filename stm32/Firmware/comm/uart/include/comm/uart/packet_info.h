@@ -61,8 +61,9 @@ namespace uart {
     } __attribute__((packed));
 
 
-    /** @brief Calculate CRC8 checksum */
-    uint8_t calculate_crc8(const uint8_t *data, uint16_t length);
+    /** @brief Calculate CRC8 checksum. */
+    uint8_t calculate_crc8(const uint8_t *data, uint16_t length, uint8_t crc = 0x00);
+
 } // namespace uart
 
 #endif
