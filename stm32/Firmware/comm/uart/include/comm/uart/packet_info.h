@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-03-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_

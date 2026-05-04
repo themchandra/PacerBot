@@ -108,6 +108,7 @@ namespace {
             return false;
         }
 
+        // TODO: Check if this is valid for ACK ids as that use 0 length payloads
         if (packet.length == 0 || packet.length >= uart::DATA_MAX_SIZE) {
             return false;
         }
@@ -145,35 +146,38 @@ namespace {
         constexpr uint16_t HEADER_SIZE {3};
 
         while (consumedBytes < newBytes) {
+            // ---- Check if a full packet is available ----
             const uint16_t idx     = (curIdx_ + consumedBytes) & RX_BUF_MASK;
             const uint8_t syncByte = rxBuf_[idx];
+
+            // Loops until a sync byte is detected
             if (syncByte != uart::SYNC_RECV) {
                 consumedBytes++;
                 continue;
             }
 
-            // Check if we have a full header
             if (consumedBytes + HEADER_SIZE > newBytes) {
-                break;
+                break; // Stop parsing entirely
             }
 
+            // Have header, get length of potential packet data
             const uint8_t payloadLen
                 = rxBuf_[(curIdx_ + consumedBytes + 2) & RX_BUF_MASK];
 
-            // Fail-fast: validate length before attempting to construct packet
+            // TODO: Check if this is valid for ACK ids as that use 0 length payloads
             if (payloadLen == 0 || payloadLen >= uart::DATA_MAX_SIZE) {
                 consumedBytes++;
-                continue;
+                continue; // Invalid, go back to finding the next sync byte
             }
 
             const uint16_t packetLen
                 = static_cast<uint16_t>(HEADER_SIZE + payloadLen + 1);
 
-            // Check if the complete packet is available
             if (consumedBytes + packetLen > newBytes) {
-                break;
+                break; // Packet not fully available, stop parsing
             }
 
+            // ---- A full packet is available, attempt validation ----
             // Construct packet
             uart::DataPacket_raw packet {};
             packet.sync = syncByte;
@@ -213,7 +217,7 @@ namespace {
         }
 
         // Advance the read pointer by the number of bytes consumed.
-        // If the loop brekas early from an incomplete packet, the unprocessed
+        // If the loop breaks early from an incomplete packet, the unprocessed
         // bytes be available next iteration.
         curIdx_ = (curIdx_ + consumedBytes) & RX_BUF_MASK;
     }
