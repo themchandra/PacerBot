@@ -2,7 +2,7 @@
  * @file config.h
  * @brief Config constants for UART serial communication
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-04-2026
  */
 
 #ifndef COMM_UART_CONFIG_H_
@@ -14,7 +14,7 @@
 
 namespace uart::config {
     // Serial port settings
-    const std::string UART_DEVICE {"/dev/ttyS2"};
+    const std::string UART_DEVICE {"/dev/ttyAMA0"};
     constexpr int BAUDRATE {460800};
     constexpr int TIMEOUT_SEC {10};
 
