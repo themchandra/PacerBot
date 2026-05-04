@@ -15,7 +15,7 @@
 namespace uart::config {
     // Serial port settings
     const std::string UART_DEVICE {"/dev/ttyAMA0"};
-    constexpr int BAUDRATE {460800};
+    constexpr int BAUDRATE {112500};
     constexpr int TIMEOUT_SEC {10};
 
     // Queue sizes
