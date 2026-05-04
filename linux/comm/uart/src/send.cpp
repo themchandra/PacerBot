@@ -2,7 +2,7 @@
  * @file send.cpp
  * @brief Handles data transmission via UART
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-04-2026
  */
 
 #include "comm/uart/send.h"
@@ -37,12 +37,8 @@ namespace {
         uint8_t buffer[uart::config::READ_BUF_SIZE] {};
 
         while (isThreadRunning_) {
-            // Check if queue is empty:
-            // - If empty, do nothing
-            // - If not, serialize the first item in queue
-            // 		- Make sure data serialization is valid
-            //		- Send data via uart
             queue_sem_.acquire();
+
             if (!isThreadRunning_) {
                 break; // Exit loop by stop()
             }
@@ -142,11 +138,8 @@ namespace uart::send {
     void clearQueue()
     {
         assert(isInitialized_);
-
-        // Create an empty queue and swap,
-        // Destructor for DataPacket objects will run
         std::lock_guard<std::mutex> lock(queue_mtx_);
-        queue_ = {};
+        queue_ = {}; // Swap queue with empty one
     }
 
 } // namespace uart::send

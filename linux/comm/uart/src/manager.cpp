@@ -1,12 +1,12 @@
 /**
  * @file manager.cpp
- * @brief Manages UART communication between Radxa & STM32
+ * @brief Manages UART communication between Host & STM32
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-04-2026
  */
 
-#include "comm/uart/config.h"
 #include "comm/uart/manager.h"
+#include "comm/uart/config.h"
 #include "comm/uart/recv.h"
 #include "comm/uart/send.h"
 

@@ -2,7 +2,7 @@
  * @file packet_info.cpp
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-04-2026
  */
 
 #include "comm/uart/packet_info.h"
@@ -31,7 +31,7 @@ namespace uart {
 
     size_t DataPacket::serialize(uint8_t *buf, size_t buf_size) const
     {
-        size_t packet_size {3 + data_.size() + 1};
+        size_t packet_size {HEADER_SIZE + data_.size() + CRC_SIZE};
         if (buf_size < packet_size) {
             return 0;
         }
