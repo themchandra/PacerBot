@@ -92,7 +92,7 @@ namespace {
 
 
     /**
-     * @brief Construct and validate a packet.
+     * @brief Construct and verify checksum.
      * @details Assumes sync, length, and ID were already checked by the parser.
      * @param packet The packet to fill.
      * @param startIdx The buffer index of the sync byte.
@@ -100,8 +100,8 @@ namespace {
      * @param payloadLen The payload length.
      * @return true if valid, false otherwise.
      */
-    bool constructAndValidate(uart::DataPacket_raw &packet, uint16_t startIdx,
-                              uint8_t packetId, uint8_t payloadLen)
+    bool constructAndVerify(uart::DataPacket_raw &packet, uint16_t startIdx,
+                            uint8_t packetId, uint8_t payloadLen)
     {
         // ---- Packet construction ----
         constexpr uint16_t HEADER_SIZE {3};
@@ -135,6 +135,50 @@ namespace {
     }
 
 
+    // validateData returns -1 if invalid, 0 if partial packet, lenght of packet if valid
+    int16_t validateData(uint16_t startIdx, int dataLen)
+    {
+        const uint8_t syncByte = rxBuf_[startIdx];
+
+        // Skip non-sync bytes
+        if (syncByte != uart::SYNC_RECV) {
+            return -1;
+        }
+
+        // Need at least a header (3 bytes: sync, id, len)
+        if (uart::HEADER_SIZE > dataLen) {
+            return 0;
+        }
+
+        const uint8_t packetId = rxBuf_[(startIdx + 1) & RX_BUF_MASK];
+        if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
+            || packetId >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
+            return -1;
+        }
+
+        const uint8_t payloadLen = rxBuf_[(startIdx + 2) & RX_BUF_MASK];
+        if (payloadLen >= uart::DATA_MAX_SIZE) {
+            return -1;
+        }
+
+        const uint16_t packetLen
+            = static_cast<uint16_t>(uart::HEADER_SIZE + payloadLen + uart::CRC_SIZE);
+        if (packetLen > dataLen) {
+            return 0;
+        }
+
+        // ---- A full packet is available, attempt validation ----
+        uart::DataPacket_raw packet {};
+        if (constructAndVerify(packet, startIdx, packetId, payloadLen)) {
+            addToQueue(packet);
+            return packetLen;
+        } else {
+            return -1;
+        }
+        // If checksum failed, assume data was actually not valid
+    }
+
+
     void parseBuffer()
     {
         // Calculate available bytes in circular buffer
@@ -158,8 +202,6 @@ namespace {
         }
 
         uint16_t consumedBytes {};
-        constexpr uint16_t HEADER_SIZE {3};
-
         while (consumedBytes < newBytes) {
             // ---- Check if a full packet is available ----
             // 1. Consume bytes until sync byte
@@ -170,58 +212,22 @@ namespace {
             // 3. Verify Checksum
             // Note: Once a sync byte is found, only increment consumedBytes only if
             //       the packet itself is invalid
-            // Note 2: If the number of remaining bytes is not enough for a full packet,
-            //         don't update curIdx and stop checking validity/verification
-            const uint16_t idx     = (curIdx_ + consumedBytes) & RX_BUF_MASK;
-            const uint8_t syncByte = rxBuf_[idx];
+            // Note 2: If the number of remaining bytes is not enough for a full
+            //         packet, don't update curIdx and stop checking validity/verification
+            const uint16_t idx = (curIdx_ + consumedBytes) & RX_BUF_MASK;
 
-            // Loops until a sync byte is detected
-            if (syncByte != uart::SYNC_RECV) {
+            const int16_t validBytes = validateData(idx, newBytes - consumedBytes);
+            if (validBytes == -1) {
                 consumedBytes++;
-                continue;
+
+            } else if (validBytes == 0) {
+                // Advance indexer to sync byte and stop parsing
+                curIdx_ = (curIdx_ + consumedBytes) & RX_BUF_MASK;
+                return;
+
+            } else {
+                consumedBytes += validBytes; // Advanced indexer to next unread byte
             }
-
-            if (consumedBytes + HEADER_SIZE > newBytes) {
-                break; // Stop parsing entirely
-            }
-
-            // Have header, get length of potential packet data
-            const uint8_t payloadLen
-                = rxBuf_[(curIdx_ + consumedBytes + 2) & RX_BUF_MASK];
-
-            // TODO: Check if this is valid for ACK ids as that use 0 length payloads
-            if (payloadLen == 0 || payloadLen >= uart::DATA_MAX_SIZE) {
-                consumedBytes++;
-                continue; // Invalid, go back to finding the next sync byte
-            }
-
-            const uint8_t packetId = rxBuf_[(curIdx_ + consumedBytes + 1) & RX_BUF_MASK];
-            if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
-                || packetId >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
-                consumedBytes++;
-                continue; // Invalid, go back to finding the next sync byte
-            }
-
-            const uint16_t packetLen
-                = static_cast<uint16_t>(HEADER_SIZE + payloadLen + 1);
-
-            if (consumedBytes + packetLen > newBytes) {
-                break; // Packet not fully available, stop parsing
-            }
-
-            // ---- A full packet is available, attempt validation ----
-            uart::DataPacket_raw packet {};
-            const uint16_t startIdx = (curIdx_ + consumedBytes) & RX_BUF_MASK;
-
-            if (constructAndValidate(packet, startIdx, packetId, payloadLen)) {
-                addToQueue(packet);
-                consumedBytes += packetLen;
-                continue;
-            }
-
-            // Packet failed validation — advance by one byte and retry from
-            // the next position. curIdx_ will be updated
-            consumedBytes++;
         }
 
         // Advance the read pointer by the number of bytes consumed.

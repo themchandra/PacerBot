@@ -45,6 +45,9 @@ namespace uart {
         TOTAL,
     };
 
+    // Packet attributes
+    constexpr uint8_t HEADER_SIZE {3};
+    constexpr uint8_t CRC_SIZE {1};
 
     /** @brief Raw data packet structure from reading UART */
     struct DataPacket_raw {
@@ -54,7 +57,7 @@ namespace uart {
         uint8_t data[DATA_MAX_SIZE] {}; // Data
                                         // CRC8 at data[length]
 
-        size_t totalSize() const { return 3 + length + 1; }
+        size_t totalSize() const { return HEADER_SIZE + length + CRC_SIZE; }
     } __attribute__((packed));
 
 
