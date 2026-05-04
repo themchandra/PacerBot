@@ -111,17 +111,20 @@ namespace {
         packet.id     = static_cast<uart::ePacketID>(packetId);
         packet.length = payloadLen;
 
-        // Copy data
         const uint16_t dataStartIdx = (startIdx + HEADER_SIZE) & RX_BUF_MASK;
         const uint16_t dataEndIdx   = (dataStartIdx + payloadLen) & RX_BUF_MASK;
-        if (dataEndIdx > dataStartIdx) {
-            // No wrap-around
-            memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
-        } else {
-            // Wrap-around: copy in two parts
-            const uint16_t firstPart = RX_BUF_SIZE - dataStartIdx;
-            memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
-            memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
+
+        // Copy payload into packet data array for non ACK packets
+        if (payloadLen > 0) {
+            if (dataEndIdx > dataStartIdx) {
+                // No wrap-around
+                memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
+            } else {
+                // Wrap-around: copy in two parts
+                const uint16_t firstPart = RX_BUF_SIZE - dataStartIdx;
+                memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
+                memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
+            }
         }
 
         // Copy CRC byte (last byte of the packet)
@@ -135,12 +138,17 @@ namespace {
     }
 
 
-    // validateData returns -1 if invalid, 0 if partial packet, lenght of packet if valid
+    /**
+     * @brief Check whether a packet candidate is valid.
+     * @param startIdx Buffer index of the candidate sync byte.
+     * @param dataLen Remaining bytes available from startIdx.
+     * @return -1 if invalid, 0 if the packet is incomplete, or the packet
+     *         length if the packet is valid.
+     */
     int16_t validateData(uint16_t startIdx, int dataLen)
     {
         const uint8_t syncByte = rxBuf_[startIdx];
 
-        // Skip non-sync bytes
         if (syncByte != uart::SYNC_RECV) {
             return -1;
         }
@@ -161,21 +169,26 @@ namespace {
             return -1;
         }
 
+        // Check for ACK packets
+        if (payloadLen == 0
+            && packetId != static_cast<uint8_t>(uart::ePacketID::RAD_ACK)) {
+            return -1;
+        }
+
         const uint16_t packetLen
             = static_cast<uint16_t>(uart::HEADER_SIZE + payloadLen + uart::CRC_SIZE);
         if (packetLen > dataLen) {
             return 0;
         }
 
-        // ---- A full packet is available, attempt validation ----
+        // A full packet is available, build packet & verify checksum
         uart::DataPacket_raw packet {};
         if (constructAndVerify(packet, startIdx, packetId, payloadLen)) {
             addToQueue(packet);
             return packetLen;
         } else {
-            return -1;
+            return -1; // Assume data is invalid
         }
-        // If checksum failed, assume data was actually not valid
     }
 
 
@@ -203,27 +216,14 @@ namespace {
 
         uint16_t consumedBytes {};
         while (consumedBytes < newBytes) {
-            // ---- Check if a full packet is available ----
-            // 1. Consume bytes until sync byte
-            // 2. From sync byte, begin checking packet validity
-            //  - Sync byte
-            //  - ID
-            //  - Length
-            // 3. Verify Checksum
-            // Note: Once a sync byte is found, only increment consumedBytes only if
-            //       the packet itself is invalid
-            // Note 2: If the number of remaining bytes is not enough for a full
-            //         packet, don't update curIdx and stop checking validity/verification
             const uint16_t idx = (curIdx_ + consumedBytes) & RX_BUF_MASK;
 
             const int16_t validBytes = validateData(idx, newBytes - consumedBytes);
             if (validBytes == -1) {
-                consumedBytes++;
+                consumedBytes++; // Skip to the next sync byte
 
             } else if (validBytes == 0) {
-                // Advance indexer to sync byte and stop parsing
-                curIdx_ = (curIdx_ + consumedBytes) & RX_BUF_MASK;
-                return;
+                newBytes = 0; // Stop & wait for next callback
 
             } else {
                 consumedBytes += validBytes; // Advanced indexer to next unread byte
