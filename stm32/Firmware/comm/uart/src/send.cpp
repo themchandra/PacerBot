@@ -23,6 +23,8 @@ namespace {
 
     // Send Management
     osMessageQueueId_t packetQueue_;
+    // Dropped packet counter for observability
+    uint32_t droppedPackets_ {};
 
     // Task definition
     std::atomic_bool isTaskRunning_ {false};
@@ -55,12 +57,12 @@ namespace {
         while (isTaskRunning_) {
             uart::DataPacket_raw sendPacket {};
 
-            // Blocking call, waiting until a packet is available 
+            // Blocking call, waiting until a packet is available
             if (osMessageQueueGet(packetQueue_, &sendPacket, nullptr, osWaitForever)
                 != osOK) {
                 continue;
             }
-            
+
             // Transmit data
             const HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(
                 huart_, reinterpret_cast<uint8_t *>(&sendPacket), sendPacket.totalSize());
@@ -69,7 +71,7 @@ namespace {
                 continue;
             }
 
-            // Wait for the DMA completion callback 
+            // Wait for the DMA completion callback
             const uint32_t flags
                 = osThreadFlagsWait(TX_COMPLETE_FLAG, osFlagsWaitAny, osWaitForever);
             if (flags != TX_COMPLETE_FLAG) {
@@ -155,10 +157,31 @@ namespace uart::send {
         packet.data[packet.length] = calculate_crc8(
             reinterpret_cast<const uint8_t *>(&packet), packet.totalSize() - 1);
 
+        // Try non-blocking enqueue. If full, drop the oldest packet and retry.
         const osStatus_t status = osMessageQueuePut(packetQueue_, &packet, 0, 0);
-        if (status != osOK) {
-            printf("Failed to queue packet (status=%d)\n\r", status);
+        if (status == osOK) {
+            return;
         }
+
+        if (status == osErrorResource) {
+            // Drop oldest and retry once
+            uart::DataPacket_raw discarded {};
+            const bool dropped
+                = (osMessageQueueGet(packetQueue_, &discarded, NULL, 0) == osOK);
+            if (dropped) {
+                const osStatus_t retryStatus
+                    = osMessageQueuePut(packetQueue_, &packet, 0, 0);
+                if (retryStatus == osOK) {
+                    droppedPackets_++;
+                    printf("Queue full, dropped oldest (dropped=%lu)\n\r",
+                           droppedPackets_);
+                    return;
+                }
+            }
+        }
+
+        // Final fallback: report failure
+        printf("Failed to queue packet (status=%d)\n\r", status);
     }
 
 

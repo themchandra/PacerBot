@@ -2,7 +2,7 @@
  * @file callbacks.cpp
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date May-01-2026
+ * @date May-03-2026
  */
 
 #include "comm/uart/callbacks.h"
@@ -18,7 +18,8 @@ namespace {
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if (huart == huart2_) {
+    // Forward TX complete to send module for any configured UART handle
+    if (huart == huart1_) {
         uart::send::handleTxComplete(huart);
     }
 }
