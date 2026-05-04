@@ -2,7 +2,7 @@
  * @file recv.cpp
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date May-03-2026
+ * @date May-04-2026
  */
 
 #include "comm/uart/recv.h"
@@ -142,6 +142,7 @@ namespace {
         packet.sync   = syncByte;
         packet.id     = static_cast<uart::ePacketID>(packetId);
         packet.length = payloadLen;
+
         // Copy payload into packet data array for non ACK packets
         if (payloadLen > 0) {
             const uint16_t dataStartIdx = (startIdx + uart::HEADER_SIZE) & RX_BUF_MASK;
@@ -149,12 +150,12 @@ namespace {
 
             if (dataEndIdx > dataStartIdx) {
                 // No wrap-around
-                memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
+                std::memcpy(packet.data, &rxBuf_[dataStartIdx], payloadLen);
             } else {
                 // Wrap-around: copy in two parts
                 const uint16_t firstPart = RX_BUF_SIZE - dataStartIdx;
-                memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
-                memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
+                std::memcpy(packet.data, &rxBuf_[dataStartIdx], firstPart);
+                std::memcpy(packet.data + firstPart, rxBuf_, payloadLen - firstPart);
             }
         }
         packet.data[payloadLen] = rxBuf_[crcIdx];
@@ -257,7 +258,7 @@ namespace {
             }
         }
 
-        // Advance the read pointer by the number of bytes consumed.
+        // Advance the read pointer by the number of bytes consumed
         // If the loop breaks early from an incomplete packet, the unprocessed
         // bytes be available next iteration.
         curIdx_ = (curIdx_ + consumedBytes) & RX_BUF_MASK;

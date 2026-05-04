@@ -1,8 +1,8 @@
 /**
  * @file manager.h
- * @brief Manages UART communication between Radxa & STM32
+ * @brief Manages UART communication between Host & STM32
  * @author Hayden Mai
- * @date Dec-12-2025
+ * @date May-04-2026
  */
 
 #ifndef COMM_UART_MANAGER_H_

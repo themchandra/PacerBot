@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-03-2026
+ * @date May-04-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -21,9 +21,9 @@ namespace uart {
     constexpr uint8_t SYNC_SEND {0x5A};
 
 
-    /** @brief List of IDs to/from the mcu */
+    /** @brief List of IDs to/from the mcu/ */
     enum class ePacketID : uint8_t {
-        // Receiving (STM32 -> Radxa)
+        // Receiving (STM32 -> Host)
         TELEM_IMU,     // IMU data
         TELEM_ULT,     // Ultrasonic data
         TELEM_ENC,     // Encoder data
@@ -33,14 +33,14 @@ namespace uart {
         STM32_ACK,     // Confirm receipt from STM32
         STM32_DEBUG,   // Debugging log
 
-        // Transmitting (Radxa -> STM32)
+        // Transmitting (Host -> STM32)
         CMD_MOTOR,      // Servo control
         CMD_NAV,        // Target speed, turn, start/stop
         CONF_PID_SPEED, // Tune speed PID
         CONF_PID_LANE,  // Tune laning PID
         CONF_SENSOR,    // Configure sensor data rate
-        RAD_STATUS,     // Status of the Radxa
-        RAD_ACK,        // Confirm receipt from Radxa
+        RAD_STATUS,     // Status of the Host
+        RAD_ACK,        // Confirm receipt from Host
 
         TOTAL,
     };
@@ -51,7 +51,7 @@ namespace uart {
 
     /** @brief Raw data packet structure from reading UART */
     struct DataPacket_raw {
-        uint8_t sync {};   // Header - 0x5A (Radxa receive) or 0xA5 (Radxa transmit)
+        uint8_t sync {};   // Header - 0x5A (Host receive) or 0xA5 (Host transmit)
         ePacketID id {};   // Refer to ePacketID enum class
         uint8_t length {}; // Max bits length of data array
         uint8_t data[DATA_MAX_SIZE] {}; // Data
