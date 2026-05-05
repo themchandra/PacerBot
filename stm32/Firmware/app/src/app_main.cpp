@@ -2,10 +2,11 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date May-14-2026
+ * @date May-17-2026
  */
 
 #include "app/app_main.h"
+#include "app/esc.h"
 #include "app/cmd_manager.h"
 #include "app/control_loop.h"
 #include "app/imu_task.h"
@@ -13,7 +14,6 @@
 
 #include "cmsis_os.h"
 #include "main.h"
-
 #include <cstdio>
 
 // External global variables from Core/Src/main.c
@@ -22,10 +22,6 @@
 extern "C" {
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
-extern UART_HandleTypeDef huart2;
-extern DMA_HandleTypeDef hdma_usart1_rx;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern TIM_HandleTypeDef htim3;
 }
 
 // IMU I2C device address
