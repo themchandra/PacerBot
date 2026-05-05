@@ -2,7 +2,7 @@
  * @file SerialUART.h
  * @brief I/O for serial communication (UART) port.
  * @author Hayden Mai
- * @date Oct-16-2025
+ * @date May-01-2026
  *
  * @link
  * https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
@@ -37,7 +37,7 @@ class SerialUART {
      * @param baudrate Baud rate for the serial communication (e.g. B9600, B115200).
      * @param timeout_sec Wait time until read or write times out.
      */
-    SerialUART(const std::string &device, int baudrate, int timeout_sec);
+    SerialUART(const std::string &device, int baudrate, int timeout_sec = 1);
 
     /**
      * @brief Closes the port if open and destruct the object instance.

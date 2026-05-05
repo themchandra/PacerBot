@@ -2,13 +2,13 @@
  * @file recv.h
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date May-01-2026
  */
 
 #ifndef COMM_UART_RECV_H_
 #define COMM_UART_RECV_H_
 
-#include "comm/uart/EventUART.h"
+#include "comm/uart/SubscriberHandle.h"
 #include "comm/uart/packet_info.h"
 #include "hal/SerialUART.h"
 
@@ -23,14 +23,9 @@ namespace uart::recv {
     void stop();
     bool isRunning();
 
-    // Queue management
-    std::optional<DataPacket> dequeue();
-    size_t getQueueSize();
-    bool isQueueEmpty();
-    void clearQueue();
-
-	// Event flag - Subscribes automatically by this module
-    EventFlag &getEventFlag();
+    std::shared_ptr<SubscriberHandle>
+    subscribe(std::initializer_list<ePacketID> ids_filter);
+    void unsubscribe(std::shared_ptr<SubscriberHandle> subscriber);
 
 } // namespace uart::recv
 

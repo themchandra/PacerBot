@@ -2,18 +2,23 @@
  * @file recv.h
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Nov-07-2025
+ * @date May-04-2026
  */
 
-#include "comm/uart/config.h"
 #include "comm/uart/recv.h"
+#include "comm/uart/config.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <iomanip>
+#include <iostream>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <queue>
 #include <thread>
+
 
 namespace {
     bool isInitialized_ {false};
@@ -21,74 +26,143 @@ namespace {
     // Shared pointer to the serial port
     std::shared_ptr<SerialUART> uartPtr_ {nullptr};
 
-    // Queue for storing messages
-    std::queue<uart::DataPacket> queue_;
+    // Manage a list of subscribers
+    std::vector<std::shared_ptr<uart::SubscriberHandle>> subscribers_;
+    std::mutex sub_mtx_; // Used for managing subscriber subscriptions
+
+    // Buffer for storing partial packets
+    std::vector<uint8_t> streamBuffer_;
 
     // Threading
     std::atomic_bool isThreadRunning_ {false};
     std::thread thread_;
-    std::mutex queue_mtx_;
-
-    // Event handling
-    uart::EventFlag eventFlag_ {};
 
 
-    void parseNQueue(uint8_t *data, size_t len)
+    void publish(const uart::DataPacket &packet)
     {
-        // TODO: Determine if this is correct in case where the stream is
-        // continuous? Might need to do a robust implementation if so...
-        // - Add current stream of bytes into buffer
-        // - Parse buffer:
-        //		- If not in a middle of a byte, begin parse with sync byte, loop
-        //		  until no more sync bytes are found
-        //		- If already in a middle of a byte, continue where it was left
-        //		  off, loop until no more sync bytes are found
-        auto packet = uart::DataPacket::deserialize(data, len);
-        if (packet.has_value()) {
-            std::lock_guard<std::mutex> lock(queue_mtx_);
-            queue_.push(packet.value());
+        std::lock_guard<std::mutex> lock(sub_mtx_);
 
-            // Determine event for other threads
-            uart::eEvent event {uart::eEvent::NONE};
+        // Distribute packet to each subscriber, each has their own internal filter
+        for (auto &subscriber : subscribers_) {
+            subscriber->push(packet);
+        }
+    }
 
-            switch (packet.value().getID()) {
-            case uart::ePacketID::TELEM_IMU:
-            case uart::ePacketID::TELEM_ULT:
-            case uart::ePacketID::TELEM_ENC:
-            case uart::ePacketID::TELEM_PID:
-            case uart::ePacketID::TELEM_BATTERY:
-                event = uart::eEvent::TELEMETRY;
-                break;
-            case uart::ePacketID::STM32_STATUS:
-                event = uart::eEvent::STATUS;
-                break;
-            case uart::ePacketID::STM32_ACK:
-                event = uart::eEvent::ACK;
-                break;
-            case uart::ePacketID::STM32_DEBUG:
-                event = uart::eEvent::DEBUG;
-                break;
-            default:
-                event = uart::eEvent::NONE;
-                break;
+
+    /**
+     * @brief Check whether a packet candidate is valid.
+     * @param buffer Packet data to validate against.
+     * @param startIdx Buffer index of the candidate sync byte.
+     * @param dataLen Remaining bytes available from startIdx.
+     * @return -1 if invalid, 0 if the packet is incomplete, or the packet
+     *         length if the packet is valid.
+     */
+    int validateData(const uint8_t *buffer, size_t startIdx, size_t dataLen)
+    {
+        // Need at least header (3 bytes: sync, id, len)
+        if (dataLen < uart::HEADER_SIZE) {
+            return 0; // Incomplete
+        }
+
+        // Validate sync byte - accept both SYNC_RECV (0x5A) and SYNC_SEND (0xA5)
+        // for loopback testing. deserialize() will enforce SYNC_RECV for actual STM32
+        // packets.
+        const uint8_t syncByte = buffer[startIdx];
+        if (syncByte != uart::SYNC_RECV && syncByte != uart::SYNC_SEND) {
+            return -1; // Invalid
+        }
+
+
+        // Validate packet ID is in valid range
+        const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
+        if (packetId > uart::ePacketID::STM32_DEBUG) {
+            return -1; // Invalid packet ID
+        }
+
+        // Extract and validate payload length
+        const uint8_t payloadLen = buffer[startIdx + 2];
+        if (payloadLen >= uart::DATA_MAX_SIZE) {
+            return -1; // Payload length out of bounds
+        }
+
+        const size_t packetLen = uart::HEADER_SIZE + payloadLen + uart::CRC_SIZE;
+
+        // Check if we have the complete packet
+        if (dataLen < packetLen) {
+            return 0; // Incomplete
+        }
+
+        // Return packet length on success
+        return static_cast<int>(packetLen);
+    }
+
+    void parseBuffer()
+    {
+        if (streamBuffer_.empty()) {
+            return;
+        }
+
+        size_t processedIdx {0};
+        bool keepParsing {true};
+
+        while (keepParsing) {
+            // Search for sync byte starting from processedIdx offset
+            auto syncByteIter = std::find(streamBuffer_.begin() + processedIdx,
+                                          streamBuffer_.end(), uart::SYNC_RECV);
+            if (syncByteIter == streamBuffer_.end()) {
+                // No more sync bytes found, discard all processed junk
+                processedIdx = streamBuffer_.size();
+                keepParsing  = false;
+                continue;
             }
-            eventFlag_.notify(event);
+
+            // Calculate index of sync byte relative to buffer start
+            size_t syncIdx      = std::distance(streamBuffer_.begin(), syncByteIter);
+            size_t remainingLen = streamBuffer_.size() - syncIdx;
+
+            // Validate packet from the sync byte
+            int validationResult
+                = validateData(streamBuffer_.data(), syncIdx, remainingLen);
+
+            if (validationResult > 0) {
+                // Valid packet - deserialize and process
+                size_t packetLen = static_cast<size_t>(validationResult);
+                auto packet      = uart::DataPacket::deserialize(
+                    streamBuffer_.data() + syncIdx, packetLen);
+                if (packet.has_value()) {
+                    publish(packet.value());
+                    processedIdx = syncIdx + packetLen;
+                } else {
+                    // Deserialize failed (CRC error) - skip this bad sync byte
+                    processedIdx = syncIdx + 1;
+                }
+            } else if (validationResult == 0) {
+                // Incomplete packet - wait for more data
+                processedIdx = syncIdx; // Keep unprocessed data
+                keepParsing  = false;
+            } else {
+                // Invalid packet, skip bad sync byte
+                processedIdx = syncIdx + 1;
+            }
+        }
+
+        // Remove all processed bytes in buffer
+        if (processedIdx > 0) {
+            streamBuffer_.erase(streamBuffer_.begin(),
+                                streamBuffer_.begin() + processedIdx);
         }
     }
 
 
     void thread_loop()
     {
+        std::array<uint8_t, uart::config::READ_BUF_SIZE> readBuf;
         while (isThreadRunning_) {
-            // When a message arrives
-            //	- Parse the data (find the sync byte)
-            //	- Deserialize into DataPacket
-            // 	- Save into the queue
-            uint8_t buffer[uart::config::READ_BUF_SIZE] {};
-            size_t bytesRead = uartPtr_->readData(buffer, sizeof(buffer));
-
+            ssize_t bytesRead = uartPtr_->readData(readBuf.data(), readBuf.size());
             if (bytesRead > 0) {
-                parseNQueue(buffer, bytesRead);
+                streamBuffer_.insert(streamBuffer_.end(), readBuf.begin(),
+                                     readBuf.begin() + bytesRead);
+                parseBuffer();
             }
         }
     }
@@ -112,6 +186,12 @@ namespace uart::recv {
     void deinit()
     {
         assert(isInitialized_);
+        stop();
+        {
+            std::lock_guard<std::mutex> lock(sub_mtx_);
+            subscribers_.clear();
+        }
+        streamBuffer_.clear();
 
         // Releases ownership of object
         uartPtr_.reset();
@@ -132,7 +212,9 @@ namespace uart::recv {
     {
         assert(isInitialized_);
         isThreadRunning_ = false;
-        thread_.join();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
     }
 
 
@@ -143,54 +225,24 @@ namespace uart::recv {
     }
 
 
-    std::optional<DataPacket> dequeue()
+    std::shared_ptr<SubscriberHandle>
+    subscribe(std::initializer_list<ePacketID> ids_filter)
     {
         assert(isInitialized_);
+        auto subscriber = std::make_shared<SubscriberHandle>(ids_filter);
 
-        std::lock_guard<std::mutex> lock(queue_mtx_);
-        if (queue_.empty()) {
-            return std::nullopt; // no packets
-        }
-
-        DataPacket packet = std::move(queue_.front());
-        queue_.pop();
-        return packet;
+        std::lock_guard<std::mutex> lock(sub_mtx_);
+        subscribers_.push_back(subscriber);
+        return subscriber;
     }
 
 
-    size_t getQueueSize()
-    {
-        assert(isInitialized_);
-        std::lock_guard<std::mutex> lock(queue_mtx_);
-        return queue_.size();
-    }
-
-
-    bool isQueueEmpty()
-    {
-        assert(isInitialized_);
-        std::lock_guard<std::mutex> lock(queue_mtx_);
-        return queue_.empty();
-    }
-
-
-    void clearQueue()
+    void unsubscribe(std::shared_ptr<SubscriberHandle> subscriber)
     {
         assert(isInitialized_);
 
-        // Create an empty queue and swap,
-        // Destructor for DataPacket objects will run
-        std::lock_guard<std::mutex> lock(queue_mtx_);
-        std::queue<DataPacket> q_empty;
-        std::swap(queue_, q_empty);
-    }
-
-
-    EventFlag &getEventFlag()
-    {
-        assert(isInitialized_);
-        eventFlag_.subscribe();
-        return eventFlag_;
+        std::lock_guard<std::mutex> lock(sub_mtx_);
+        std::erase(subscribers_, subscriber);
     }
 
 } // namespace uart::recv

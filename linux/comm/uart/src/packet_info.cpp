@@ -2,11 +2,11 @@
  * @file packet_info.cpp
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Nov-06-2025
+ * @date May-04-2026
  */
 
-#include "comm/uart/config.h"
 #include "comm/uart/packet_info.h"
+#include "comm/uart/config.h"
 
 #include <cstddef> // for size_t
 #include <cstdint> // for uint8_t
@@ -31,7 +31,7 @@ namespace uart {
 
     size_t DataPacket::serialize(uint8_t *buf, size_t buf_size) const
     {
-        size_t packet_size {3 + data_.size() + 1};
+        size_t packet_size {HEADER_SIZE + data_.size() + CRC_SIZE};
         if (buf_size < packet_size) {
             return 0;
         }
@@ -59,9 +59,24 @@ namespace uart {
         const DataPacket_raw *raw_ptr = reinterpret_cast<const DataPacket_raw *>(rawData);
 
         // Validate sync byte
-        if (raw_ptr->sync != 0x5A) {
+        if (raw_ptr->sync != uart::SYNC_RECV) {
             std::cout << "Invalid sync byte\n";
             return std::nullopt;
+        }
+
+        // Validate packet ID is in valid range
+        if (static_cast<uint8_t>(raw_ptr->id)
+            >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
+            std::cout << "Invalid packet ID\n";
+            return std::nullopt;
+        }
+
+        // Validate special rule: zero-length packets must be ACK packets
+        if (raw_ptr->length == 0) {
+            if (raw_ptr->id != uart::ePacketID::STM32_ACK
+                && raw_ptr->id != uart::ePacketID::HOST_ACK) {
+                return std::nullopt;
+            }
         }
 
         // Check raw packet length, +1 for crc8
@@ -137,6 +152,5 @@ namespace uart {
         uint8_t computed_crc8 = calculate_crc8();
         return computed_crc8 == crc8_;
     }
-
 
 } // namespace uart
