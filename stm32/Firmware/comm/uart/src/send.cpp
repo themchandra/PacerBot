@@ -2,7 +2,7 @@
  * @file send.cpp
  * @brief Handles data transmission via UART DMA
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date May-05-2026
  */
 
 #include "comm/uart/send.h"
@@ -10,17 +10,21 @@
 #include "cmsis_os.h"
 #include "stm32f4xx_hal.h"
 
-#include <cstdio>
 #include <atomic>
 #include <cassert>
+#include <cstdio>
 #include <cstring>
 
 namespace {
     bool isInitialized_ {false};
     UART_HandleTypeDef *huart_;
 
+    constexpr uint32_t TX_COMPLETE_FLAG {0x01};
+
     // Send Management
     osMessageQueueId_t packetQueue_;
+    // Dropped packet counter for observability
+    uint32_t droppedPackets_ {};
 
     // Task definition
     std::atomic_bool isTaskRunning_ {false};
@@ -33,7 +37,7 @@ namespace {
     StaticTask_t task_cb_;
     StackType_t task_stack_mem_[STACK_SIZE_BYTES];
 
-    static osThreadAttr_t task_att_ = {
+    constexpr osThreadAttr_t task_att_ = {
         .name       = "sendTask",
         .attr_bits  = 0,
         .cb_mem     = &task_cb_,
@@ -53,18 +57,27 @@ namespace {
         while (isTaskRunning_) {
             uart::DataPacket_raw sendPacket {};
 
-            // Blocks & waits for packets in queue
-            osMessageQueueGet(packetQueue_, &sendPacket, 0, osWaitForever);
-            HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(huart_, (uint8_t *)&sendPacket,
-                                                          sendPacket.totalSize());
-            if (ret != HAL_OK) {
-                // Provide some debug information if DMA transmit couldn't be started
-                printf("HAL_UART_Transmit_DMA failed: %d\n\r", static_cast<int>(ret));
+            // Blocking call, waiting until a packet is available
+            if (osMessageQueueGet(packetQueue_, &sendPacket, nullptr, osWaitForever)
+                != osOK) {
+                continue;
             }
 
-            // TODO: Make constants and do automatic calculate with baudrate for allow
-            // 		 time for DMA transmission
-            osDelay(10); // Maximum size DataPacket_raw is 104 bytes
+            // Transmit data
+            const HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(
+                huart_, reinterpret_cast<uint8_t *>(&sendPacket), sendPacket.totalSize());
+            if (ret != HAL_OK) {
+                printf("HAL_UART_Transmit_DMA failed: %d\n\r", static_cast<int>(ret));
+                continue;
+            }
+
+            // Wait for the DMA completion callback
+            const uint32_t flags
+                = osThreadFlagsWait(TX_COMPLETE_FLAG, osFlagsWaitAny, osWaitForever);
+            if (flags != TX_COMPLETE_FLAG) {
+                printf("UART TX wait failed: 0x%08lx\n\r",
+                       static_cast<unsigned long>(flags));
+            }
         }
     }
 
@@ -76,8 +89,12 @@ namespace uart::send {
     void init(UART_HandleTypeDef *huart)
     {
         assert(!isInitialized_);
-        huart_         = huart;
-        packetQueue_   = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        huart_       = huart;
+        packetQueue_ = osMessageQueueNew(MAX_QUEUE_SIZE, sizeof(DataPacket_raw), NULL);
+        if (packetQueue_ == nullptr) {
+            printf("Failed to create message queue\n\r");
+            return;
+        }
         isInitialized_ = true;
     }
 
@@ -90,7 +107,6 @@ namespace uart::send {
     }
 
 
-    // Thread management
     void start()
     {
         assert(isInitialized_);
@@ -107,6 +123,8 @@ namespace uart::send {
     {
         assert(isInitialized_);
         isTaskRunning_ = false;
+        osThreadTerminate(taskHandle_);
+        taskHandle_ = nullptr;
     }
 
 
@@ -117,34 +135,67 @@ namespace uart::send {
     }
 
 
-    // Enqueuing data
-    void enqueue_IMU(IMU_data data)
+    void handleTxComplete(UART_HandleTypeDef *huart)
+    {
+        if (huart == huart_ && taskHandle_ != nullptr) {
+            (void)osThreadFlagsSet(taskHandle_, TX_COMPLETE_FLAG);
+        }
+    }
+
+
+    static void enqueue_packet(uart::ePacketID id, const void *payload, uint8_t len)
+    {
+        uart::DataPacket_raw packet {};
+        packet.sync   = SYNC_SEND;
+        packet.id     = id;
+        packet.length = len;
+
+        if (payload != nullptr && len > 0) {
+            std::memcpy(packet.data, payload, len);
+        }
+
+        packet.data[packet.length] = calculate_crc8(
+            reinterpret_cast<const uint8_t *>(&packet), packet.totalSize() - 1);
+
+        // Try non-blocking enqueue. If full, drop the oldest packet and retry.
+        const osStatus_t status = osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        if (status == osOK) {
+            return;
+        }
+
+        if (status == osErrorResource) {
+            // Drop oldest and retry once
+            uart::DataPacket_raw discarded {};
+            const bool dropped
+                = (osMessageQueueGet(packetQueue_, &discarded, NULL, 0) == osOK);
+            if (dropped) {
+                const osStatus_t retryStatus
+                    = osMessageQueuePut(packetQueue_, &packet, 0, 0);
+                if (retryStatus == osOK) {
+                    droppedPackets_++;
+                    printf("Queue full, dropped oldest (dropped=%lu)\n\r",
+                           droppedPackets_);
+                    return;
+                }
+            }
+        }
+
+        // Final fallback: report failure
+        printf("Failed to queue packet (status=%d)\n\r", status);
+    }
+
+
+    void enqueue_imu(IMU_data data)
     {
         assert(isInitialized_);
-
-        DataPacket_raw packet {};
-        packet.sync   = SYNC_SEND;
-        packet.id     = ePacketID::TELEM_IMU;
-        packet.length = sizeof(IMU_data);
-        std::memcpy(packet.data, &data, sizeof(IMU_data));
-        packet.data[packet.length]
-            = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
-
-        osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        enqueue_packet(ePacketID::TELEM_IMU, &data, sizeof(IMU_data));
     }
 
 
     void enqueue_ack()
     {
         assert(isInitialized_);
-
-        DataPacket_raw packet {};
-        packet.sync = SYNC_SEND;
-        packet.id   = ePacketID::STM32_ACK;
-        packet.data[packet.length]
-            = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
-
-        osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        enqueue_packet(ePacketID::STM32_ACK, nullptr, 0);
     }
 
 
@@ -158,29 +209,19 @@ namespace uart::send {
 
         // Cut off string if too long
         constexpr uint8_t MAX_MSG_SIZE {DATA_MAX_SIZE - 1};
-        uint8_t len = strlen(msg);
+        uint8_t len = static_cast<uint8_t>(strlen(msg));
         if (len > MAX_MSG_SIZE) {
             len = MAX_MSG_SIZE;
         }
 
-        DataPacket_raw packet {};
-        packet.sync   = SYNC_SEND;
-        packet.id     = ePacketID::STM32_DEBUG;
-        packet.length = len;
-        std::memcpy(packet.data, msg, packet.length);
-        packet.data[packet.length]
-            = calculate_crc8((uint8_t *)&packet, packet.totalSize() - 1);
-
-        osMessageQueuePut(packetQueue_, &packet, 0, 0);
+        enqueue_packet(ePacketID::STM32_DEBUG, msg, len);
     }
+
 
     bool isQueueEmpty()
     {
         assert(isInitialized_);
-        if (osMessageQueueGetCount(packetQueue_) == 0) {
-            return true;
-        }
-        return false;
+        return osMessageQueueGetCount(packetQueue_) == 0;
     }
 
 

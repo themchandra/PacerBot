@@ -2,7 +2,7 @@
  * @file send.h
  * @brief Handles data transmission via UART DMA
  * @author Hayden Mai
- * @date Dec-16-2025
+ * @date May-05-2026
  */
 
 #ifndef COMM_UART_SEND_H_
@@ -32,11 +32,14 @@ namespace uart::send {
     void stop();
     bool isRunning();
 
+    // Signals UART transmit is completed
+    void handleTxComplete(UART_HandleTypeDef *huart);
+
     // Enqueuing data
-    void enqueue_IMU(IMU_data data);
-    // void enqueue_Ultrasonic(uint32_t data);
-    // void enqueue_Encoder(Encoder_data data);
-    // void enqueue_Battery(Battery_data data);
+    void enqueue_imu(IMU_data data);
+    // void enqueue_ultrasonic(uint32_t data);
+    // void enqueue_encoder(Encoder_data data);
+    // void enqueue_battery(Battery_data data);
     // void enqueue_PID(PID_data data);
     // void enqueue_status(Status_data data);
     void enqueue_ack();
