@@ -44,9 +44,9 @@ namespace {
                 continue;
             }
 
-            if (packet.id == uart::ePacketID::RAD_ACK && packet.length == 0) {
+            if (packet.id == uart::ePacketID::HOST_ACK && packet.length == 0) {
                 std::printf("RX ack\n\r");
-            } else if (packet.id == uart::ePacketID::STM32_DEBUG) {
+            } else if (packet.id == uart::ePacketID::HOST_DEBUG) {
                 std::printf("RX debug: %.*s\n\r", static_cast<int>(packet.length),
                             reinterpret_cast<const char *>(packet.data));
             } else {

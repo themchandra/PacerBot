@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-04-2026
+ * @date May-05-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -21,7 +21,7 @@ namespace uart {
     constexpr uint8_t SYNC_SEND {0x5A};
 
 
-    /** @brief List of IDs to/from the mcu/ */
+    /** @brief List of IDs to/from the mcu */
     enum class ePacketID : uint8_t {
         // Receiving (STM32 -> Host)
         TELEM_IMU,     // IMU data
@@ -34,13 +34,14 @@ namespace uart {
         STM32_DEBUG,   // Debugging log
 
         // Transmitting (Host -> STM32)
-        CMD_MOTOR,      // Servo control
+        CMD_MOTOR,      // Motor control
         CMD_NAV,        // Target speed, turn, start/stop
         CONF_PID_SPEED, // Tune speed PID
         CONF_PID_LANE,  // Tune laning PID
         CONF_SENSOR,    // Configure sensor data rate
-        RAD_STATUS,     // Status of the Host
-        RAD_ACK,        // Confirm receipt from Host
+        HOST_STATUS,    // Status of the Host
+        HOST_ACK,       // Confirm receipt from Host
+        HOST_DEBUG,     // Debugging log from Host
 
         TOTAL,
     };

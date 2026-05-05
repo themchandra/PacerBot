@@ -197,7 +197,7 @@ namespace {
 
         // Check for ACK packets
         if (payloadLen == 0
-            && packetId != static_cast<uint8_t>(uart::ePacketID::RAD_ACK)) {
+            && packetId != static_cast<uint8_t>(uart::ePacketID::HOST_ACK)) {
             return -1;
         }
 
