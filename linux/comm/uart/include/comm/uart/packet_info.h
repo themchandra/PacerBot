@@ -45,6 +45,7 @@ namespace uart {
         CONF_SENSOR,    // Configure sensor data rate
         HOST_STATUS,    // Status of the Host
         HOST_ACK,       // Confirm receipt from Host
+        HOST_DEBUG,     // Debugging log from Host
 
         TOTAL,
     };

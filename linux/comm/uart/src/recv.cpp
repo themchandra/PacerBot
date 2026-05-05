@@ -75,7 +75,7 @@ namespace {
 
         // Validate packet ID is in valid range
         const auto packetId = static_cast<uart::ePacketID>(buffer[startIdx + 1]);
-        if (packetId >= uart::ePacketID::TOTAL) {
+        if (packetId > uart::ePacketID::STM32_DEBUG) {
             return -1; // Invalid packet ID
         }
 

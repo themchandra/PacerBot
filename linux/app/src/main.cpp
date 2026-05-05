@@ -21,11 +21,16 @@ void test()
         std::string str = "Hello world " + std::to_string(counter++);
 
         auto packet = uart::DataPacket(
-            uart::ePacketID::STM32_DEBUG,
+            uart::ePacketID::HOST_DEBUG,
             std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(str.data()),
                                      str.size()));
         uart::send::enqueue(std::move(packet));
-        timing::sleepForMs(1000);
+        timing::sleepForMs(100);
+
+        auto ack_packet = uart::DataPacket(uart::ePacketID::HOST_ACK,
+                                           std::span<const uint8_t>());
+        uart::send::enqueue(std::move(ack_packet));
+        timing::sleepForMs(100);
     }
 }
 

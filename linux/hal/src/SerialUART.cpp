@@ -125,6 +125,13 @@ void SerialUART::configurePort() const
     tio.c_cflag |= CS8;
     tio.c_cflag |= (CLOCAL | CREAD);
 
+    // Put the port into raw mode so binary packets are not held by the
+    // kernel's line discipline waiting for line endings or other cooked input.
+    tio.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL
+                     | IXON);
+    tio.c_oflag &= ~OPOST;
+    tio.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+
     // Timed blocking reads: prevents tight spin when no data is available.
     // VMIN=0 and VTIME>0 means read returns on first byte or timeout.
     const int timeout_ds = (timeout_sec_ > 0) ? (timeout_sec_ * 10) : 1;
