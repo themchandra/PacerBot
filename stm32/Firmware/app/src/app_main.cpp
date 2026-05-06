@@ -13,9 +13,12 @@
 #include "hal/imu.h"
 #include "main.h"
 
+#include "hal/servo.h"
+
 #include <cstdio>
 
 namespace {
+    constexpr bool ENABLE_UART_DEBUG {false};
     constexpr uint32_t RECV_PRINTER_STACK_SIZE_BYTES {512};
 
     StaticTask_t recvPrinterTaskCb_;
@@ -86,25 +89,27 @@ extern "C" void app_main(void)
 {
     // initialize other modules and start new threads and stuff
     // call C++ functions here
-    uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
-    uart::manager::start();
-    startRecvPrintThread();
-    uint32_t debugCounter {1};
-    // std::array<float, 3> a_data;
-    // IMU MPU6050(&hi2c1, 0x68);
-    // MPU6050.scan_i2c();
+    static hal::Servo servo;
+    if (ENABLE_UART_DEBUG) {
+        uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
+        uart::manager::start();
+    }
+    servo.init(&htim3);
+    if (ENABLE_UART_DEBUG) {
+        startRecvPrintThread();
+    }
 
     while (true) {
-        char debugMessage[32] {};
-        std::snprintf(debugMessage, sizeof(debugMessage), "Debug here! #%lu",
-                      static_cast<unsigned long>(debugCounter++));
-        uart::send::enqueue_debug(debugMessage);
-        osDelay(100);
-        uart::send::enqueue_ack();
+        if (ENABLE_UART_DEBUG) {
+            static uint32_t debugCounter {1};
+            char debugMessage[32] {};
+            std::snprintf(debugMessage, sizeof(debugMessage), "Debug here! #%lu",
+                          static_cast<unsigned long>(debugCounter++));
+            uart::send::enqueue_debug(debugMessage);
+            uart::send::enqueue_ack();
+        }
 
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        // MPU6050.get_accel(a_data);
-        // printf("x =%f, y=%f , z=%f\n", a_data[0], a_data[1], a_data[2]);
         osDelay(100);
     }
 }
