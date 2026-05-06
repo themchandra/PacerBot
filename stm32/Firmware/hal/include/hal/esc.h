@@ -10,7 +10,7 @@ namespace hal {
       public:
         // NOTE: Deadzone stops at 1550
         static constexpr uint16_t MIN_US {1000};
-        static constexpr uint16_t NEUTRAL_US {1550};
+        static constexpr uint16_t NEUTRAL_US {1500};
         static constexpr uint16_t MAX_US {2000};
 
         bool init(TIM_HandleTypeDef *timer);
