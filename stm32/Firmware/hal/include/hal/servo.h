@@ -6,26 +6,23 @@
 #ifndef HAL_SERVO_H_
 #define HAL_SERVO_H_
 
-#include "main.h"
-
-#include <cstdint>
+#include "hal/pwm.h"
 
 namespace hal {
 
     class Servo {
       public:
+        static constexpr uint16_t MIN_US {1400}; // Right
+        static constexpr uint16_t MAX_US {1700}; // Left
+        static constexpr uint16_t CENTER_US {1550};
+
         bool init(TIM_HandleTypeDef *timer);
-        void setPulseUs(uint16_t pulseUs);
+        void set_pulse_us(uint16_t pulse_us);
 
       private:
-        static constexpr uint32_t SERVO_CHANNEL {TIM_CHANNEL_2};
-        static constexpr uint16_t SERVO_MIN_PULSE_US {1400};
-        static constexpr uint16_t SERVO_MAX_PULSE_US {1700};
-        static constexpr uint16_t SERVO_CENTER_PULSE_US {1550};
+        static constexpr uint32_t TIM_CHANNEL {TIM_CHANNEL_2};
 
-        TIM_HandleTypeDef *servoTimer_ {nullptr};
-
-        static uint16_t clampPulse(uint16_t pulseUs);
+        Pwm pwm_ {TIM_CHANNEL, MIN_US, MAX_US, CENTER_US};
     };
 
 } // namespace hal

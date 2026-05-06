@@ -1,6 +1,6 @@
 #pragma once
 
-#include "main.h"
+#include "hal/pwm.h"
 
 #include <cstdint>
 
@@ -13,15 +13,13 @@ namespace hal {
         static constexpr uint16_t NEUTRAL_US {1550};
         static constexpr uint16_t MAX_US {2000};
 
-        void init();
+        bool init(TIM_HandleTypeDef *timer);
         void set_pulse_us(uint16_t pulse_us);
 
       private:
-        static constexpr uint32_t ESC_CHANNEL {TIM_CHANNEL_1};
+        static constexpr uint32_t TIM_CHANNEL {TIM_CHANNEL_1};
 
-        TIM_HandleTypeDef *timer_ {nullptr};
-
-        static uint16_t clampPulse(uint16_t pulseUs);
+        Pwm pwm_ {TIM_CHANNEL, MIN_US, MAX_US, NEUTRAL_US};
     };
 
 } // namespace hal
