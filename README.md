@@ -1,63 +1,85 @@
 # PacerBot
-A mini “autonomous pace cart” that stays between lane lines and holds a target pace.  
-Inspired by stadium pacing lights (like WaveLight), but portable and affordable for everyday runners.
 
----
+PacerBot is an autonomous RC vehicle designed to help runners maintain a target pace.
 
 ## Motivation
-Runners often struggle to hold a consistent pace during workouts. Smartwatches such as Apple Watch or Garmin provide feedback only **after** a runner has already drifted off pace, forcing them to glance at their wrist and break rhythm.  
 
-Elite athletes sometimes train with pacing lights, like the **WaveLight system**, which guide them lap by lap. However, these are **expensive, fixed to tracks, and inaccessible** to everyday runners.  
+It can be difficult for runners to hold a consistent pace during workouts. Watches can display pace, but runners still need to constantly check and react.
 
-**PacerBot** aims to bring accurate pacing to any runner by providing a lightweight, track-ready autonomous cart.
+Professional pacing systems such as WaveLight exist, but they are expensive and only available at certain tracks and events.
 
----
+PacerBot was built as a lower-cost, portable pacing system that can autonomously drive around a track while maintaining a target pace.
 
-## Key Features
-- **Accurate Pacing Control** – maintains target lap times within ±1s per 400m  
-- **Lane Following** – stays centered in a lane using line sensors  
-- **Safety Systems** – emergency stop switch, bumper cut-off, and speed cap  
-- **Wireless Control** – set pace, start/stop, and E-stop from phone/host app via BLE  
-- **Telemetry Logging** – logs target vs. measured speed, lap splits, and states to CSV  
-- **Portable Design** – <3 kg, 30–40 min runtime on battery  
+## System Architecture
 
-## Milestones
-- [ ] **Milestone 1 – Rolling Base**  
-  Assemble chassis, motors, wheels, battery.  
-  Encoder ISRs + simple velocity PID (drive straight).  
+```text
+Camera
+  ↓
+Radxa
+  - lane detection
+  - steering/speed decisions
+  - telemetry 
+  ↓ UART
+STM32
+  - PID control
+  - PWM generation
+  - sensor integration
+  - safety
+  ↓
+ESC + servo + motors
+```
 
-- [ ] **Milestone 2 – Pace Accuracy**  
-  Calibrate wheel circumference & encoders, tune PID.  
-  ±1s/400 m accuracy on straight runs.  
+## Repository Structure
 
-- [ ] **Milestone 3 – Lane Following**  
-  Add QTR-8 sensor array.  
-  Lateral PID keeps cart centered.  
+```text
+linux/      Host-side control and hardware abstraction for local testing
+  app/      Main executable and state machine logic
+  comm/     UART communication stack
+  hal/      Host-side hardware abstraction and mocks
 
-- [ ] **Milestone 4 – Safety Systems**  
-  Emergency stop button, bumper switch, SAFE_STOP (<100ms cutoff).  
+stm32/      STM32 firmware (FreeRTOS + HAL + motor control)
+  Firmware/ Project modules mirrored from host structure
+  Core/     STM32CubeMX-generated core startup/HAL integration
 
-- [ ] **Milestone 5 – Connectivity & Logging**  
-  BLE/UART pace commands, Python logger, basic UI.  
+web/        API and frontend experiments
+```
 
-- [ ] **Milestone 6 – Track Demo (MVP)**  
-  6 laps at fixed pace with logged splits + demo video.  
+## Hardware Used
 
----
+### Core Components
 
-## Quick Start (Host Build, No Hardware)
-```bash
-# From project root
-mkdir -p build && cd build
+- Radxa Zero 3W SBC
+- STM32F411RE microcontroller
+- 1/10 scale RC car chassis
+- Brushed ESC
+- Steering servo
+- Drive motor
+- Camera module for lane detection
+- IMU + wheel encoder sensors
+- Battery 
+- Distance sensor
 
-# Configure for host build
-cmake -G Ninja -DBUILD_HOST=ON -DBUILD_STM32=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+## Development Tools
 
-# Build
-cmake --build . -j
+- CMake
+- Ninja
+- GCC / Clang
+- arm-none-eabi toolchain
+- STM32CubeMX
 
-# Symlink compile_commands.json (for VS Code / clangd IntelliSense)
-ln -s build/compile_commands.json ..
+## Current Status
 
-# Run simulator
-./pacerbot
+- Host-side C++ stack and UART manager are in active development.
+- STM32 project is configured with CubeMX + CMake and auto-flash post-build.
+- Web/API workspace exists but is currently secondary to control firmware.
+- ESC and steering control operational on STM32 hardware.
+
+## UART Communication
+
+The Radxa and STM32 communicate over UART using lightweight command packets for:
+
+- start/stop commands
+- throttle/speed control
+- steering commands
+- telemetry and status messages
+
