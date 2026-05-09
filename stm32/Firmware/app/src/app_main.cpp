@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date May-06-2026
+ * @date May-08-2026
  */
 
 #include "app/app_main.h"
@@ -104,15 +104,14 @@ extern "C" void app_main(void)
         std::printf("Failed to initialize HAL ESC test output (esc=%d)\n\r", escOk);
     } else {
         esc.set_pulse_us(hal::ESC::NEUTRAL_US);
-        osDelay(PWM_TEST_DELAY_MS);
     }
 
     if (!servoOk) {
         std::printf("Failed to initialize HAL Servo output (servo=%d)\n\r", servoOk);
     } else {
-        servo.set_pulse_us(hal::Servo::MIN_US); // MIN_US = right
-        osDelay(PWM_TEST_DELAY_MS);
+        servo.set_pulse_us(hal::Servo::CENTER_US); // MIN_US = right
     }
+    osDelay(PWM_TEST_DELAY_MS);
 
     if (ENABLE_UART_DEBUG) {
         uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
@@ -122,20 +121,13 @@ extern "C" void app_main(void)
         startRecvPrintThread();
     }
 
-    bool goingForward {true};
 
     while (true) {
-        if (escOk) {
-            if (goingForward) {
-                esc.set_pulse_us(1555); // Forward
-            } else {
-                esc.set_pulse_us(1455); // Backward
-            }
-        }
+        servo.set_pulse_us(hal::Servo::MIN_US); // Keep servo to the right
 
-        if (servoOk) {
-            servo.set_pulse_us(hal::Servo::MIN_US); // Keep servo to the right
-        }
+        esc.set_pulse_us(1425); // Backward
+        osDelay(PWM_TEST_DELAY_MS);
+        esc.set_pulse_us(1575); // Forward 
 
         if (ENABLE_UART_DEBUG) {
             static uint32_t debugCounter {1};
@@ -148,7 +140,5 @@ extern "C" void app_main(void)
 
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
         osDelay(PWM_TEST_DELAY_MS);
-
-        goingForward = !goingForward; // Toggle direction every 1 second
     }
 }
