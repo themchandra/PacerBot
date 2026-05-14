@@ -1,11 +1,11 @@
 /**
- * @file pid.cpp
- * @brief A PID class for control loops
+ * @file pid_controller.cpp
+ * @brief PID controller implementation (float)
  * @author Hayden Mai
  * @date May-13-2026
  */
 
-#include "app/pid.h"
+#include "app/pid_controller.h"
 
 #include <algorithm>
 #include <cmath>
@@ -162,6 +162,7 @@ namespace app {
             // so that an increasing measurement reduces the output when Kd>0.
             rawDerivative = -(measurement - prev_measurement_) / dt;
         }
+
         if (derivative_filter_tau_ > 0.0f) {
             const float alpha = dt / (derivative_filter_tau_ + dt);
             // First-order low-pass filter on derivative:

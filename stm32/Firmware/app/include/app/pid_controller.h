@@ -1,12 +1,12 @@
 /**
- * @file pid.h
- * @brief A PID class for control loops
+ * @file pid_controller.h
+ * @brief PID controller for control loops (float precision)
  * @author Hayden Mai
  * @date May-13-2026
  */
 
-#ifndef APP_PID_H_
-#define APP_PID_H_
+#ifndef APP_PID_CONTROLLER_H_
+#define APP_PID_CONTROLLER_H_
 
 #include <limits>
 
@@ -130,7 +130,8 @@ namespace app {
 
         /**
          * @brief Return the last output produced by `update()`.
-         * @note Before any `update()` call the value equals clamp(0.0, min_out, max_out).
+         * @note Before any `update()` call the value equals clamp(0.0f, min_out,
+         * max_out).
          * @return Most recent control output.
          */
         float get_last_output() const;
