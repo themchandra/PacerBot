@@ -11,10 +11,10 @@
 #include <cmath>
 
 namespace {
-    bool isFinite(double value) { return std::isfinite(value); }
+    bool isFinite(float value) { return std::isfinite(value); }
 
 
-    double clampValue(double value, double minValue, double maxValue)
+    float clampValue(float value, float minValue, float maxValue)
     {
         return std::clamp(value, minValue, maxValue);
     }
@@ -23,15 +23,15 @@ namespace {
 
 namespace app {
 
-    PIDController::PIDController(double kp, double ki, double kd)
+    PIDController::PIDController(float kp, float ki, float kd)
     {
         set_gains(kp, ki, kd);
-        last_output_ = clampValue(0.0, min_out_, max_out_);
+        last_output_ = clampValue(0.0f, min_out_, max_out_);
     }
 
 
-    PIDController::PIDController(double kp, double ki, double kd, double min_out,
-                                 double max_out, double min_integral, double max_integral)
+    PIDController::PIDController(float kp, float ki, float kd, float min_out,
+                                 float max_out, float min_integral, float max_integral)
         : PIDController(kp, ki, kd)
     {
         set_output_limits(min_out, max_out);
@@ -40,7 +40,7 @@ namespace app {
     }
 
 
-    bool PIDController::set_gains(double kp, double ki, double kd)
+    bool PIDController::set_gains(float kp, float ki, float kd)
     {
         // Validate finite gains
         if (!isFinite(kp) || !isFinite(ki) || !isFinite(kd)) {
@@ -54,7 +54,7 @@ namespace app {
     }
 
 
-    bool PIDController::set_setpoint(double setpoint)
+    bool PIDController::set_setpoint(float setpoint)
     {
         if (!isFinite(setpoint)) {
             return false;
@@ -66,15 +66,15 @@ namespace app {
         // calculations after the next `update()` call provides a fresh sample.
         setpoint_             = setpoint;
         has_prev_measurement_ = false;
-        prev_measurement_     = 0.0;
+        prev_measurement_     = 0.0f;
         return true;
     }
 
 
-    double PIDController::get_setpoint() const { return setpoint_; }
+    float PIDController::get_setpoint() const { return setpoint_; }
 
 
-    bool PIDController::set_output_limits(double min_out, double max_out)
+    bool PIDController::set_output_limits(float min_out, float max_out)
     {
         if (!isFinite(min_out) || !isFinite(max_out) || min_out > max_out) {
             return false;
@@ -87,13 +87,13 @@ namespace app {
     }
 
 
-    double PIDController::get_min_output() const { return min_out_; }
+    float PIDController::get_min_output() const { return min_out_; }
 
 
-    double PIDController::get_max_output() const { return max_out_; }
+    float PIDController::get_max_output() const { return max_out_; }
 
 
-    bool PIDController::set_integral_limits(double min_integral, double max_integral)
+    bool PIDController::set_integral_limits(float min_integral, float max_integral)
     {
         if (!isFinite(min_integral) || !isFinite(max_integral)
             || min_integral > max_integral) {
@@ -107,15 +107,15 @@ namespace app {
     }
 
 
-    double PIDController::get_min_integral() const { return min_integral_; }
+    float PIDController::get_min_integral() const { return min_integral_; }
 
 
-    double PIDController::get_max_integral() const { return max_integral_; }
+    float PIDController::get_max_integral() const { return max_integral_; }
 
 
-    bool PIDController::set_derivative_filter(double tau_seconds)
+    bool PIDController::set_derivative_filter(float tau_seconds)
     {
-        if (!isFinite(tau_seconds) || tau_seconds < 0.0) {
+        if (!isFinite(tau_seconds) || tau_seconds < 0.0f) {
             return false;
         }
 
@@ -124,37 +124,37 @@ namespace app {
     }
 
 
-    double PIDController::get_derivative_filter() const { return derivative_filter_tau_; }
+    float PIDController::get_derivative_filter() const { return derivative_filter_tau_; }
 
 
-    double PIDController::get_last_output() const { return last_output_; }
+    float PIDController::get_last_output() const { return last_output_; }
 
 
     void PIDController::reset()
     {
-        integral_             = 0.0;
-        derivative_           = 0.0;
-        prev_measurement_     = 0.0;
+        integral_             = 0.0f;
+        derivative_           = 0.0f;
+        prev_measurement_     = 0.0f;
         has_prev_measurement_ = false;
-        last_output_          = clampValue(0.0, min_out_, max_out_);
+        last_output_          = clampValue(0.0f, min_out_, max_out_);
     }
 
 
-    double PIDController::update(double measurement, double dt)
+    float PIDController::update(float measurement, float dt)
     {
-        if (!isFinite(measurement) || !isFinite(dt) || dt <= 0.0) {
+        if (!isFinite(measurement) || !isFinite(dt) || dt <= 0.0f) {
             return last_output_;
         }
 
         // error = setpoint - measurement
         // (positive error means measurement is below target)
-        const double error = setpoint_ - measurement;
+        const float error = setpoint_ - measurement;
 
         // Integrate error: integral += error * dt
         // Clamp to configured integral limits to prevent windup
         integral_ = clampValue(integral_ + (error * dt), min_integral_, max_integral_);
 
-        double rawDerivative = 0.0;
+        float rawDerivative = 0.0f;
         if (has_prev_measurement_) {
             // Derivative on measurement: d(measurement)/dt approximated by
             // (measurement - prev_measurement)/dt. To produce the same sign
@@ -162,9 +162,8 @@ namespace app {
             // so that an increasing measurement reduces the output when Kd>0.
             rawDerivative = -(measurement - prev_measurement_) / dt;
         }
-
-        if (derivative_filter_tau_ > 0.0) {
-            const double alpha = dt / (derivative_filter_tau_ + dt);
+        if (derivative_filter_tau_ > 0.0f) {
+            const float alpha = dt / (derivative_filter_tau_ + dt);
             // First-order low-pass filter on derivative:
             // derivative = derivative + alpha * (raw - derivative)
             // where alpha = dt / (tau + dt)
@@ -174,8 +173,8 @@ namespace app {
         }
 
         // PID output = Kp*error + Ki*integral + Kd*derivative
-        const double output = (Kp_ * error) + (Ki_ * integral_) + (Kd_ * derivative_);
-        last_output_        = clampValue(output, min_out_, max_out_);
+        const float output = (Kp_ * error) + (Ki_ * integral_) + (Kd_ * derivative_);
+        last_output_       = clampValue(output, min_out_, max_out_);
 
         prev_measurement_     = measurement;
         has_prev_measurement_ = true;
