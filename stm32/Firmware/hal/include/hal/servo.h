@@ -1,6 +1,8 @@
 /**
  * @file servo.h
  * @brief Servo control using TIM3 PWM channel 2.
+ * @author Hayden Mai
+ * @date May-13-2026
  */
 
 #ifndef HAL_SERVO_H_
@@ -22,7 +24,7 @@ namespace hal {
       private:
         static constexpr uint32_t TIM_CHANNEL {TIM_CHANNEL_2};
 
-        Pwm pwm_ {TIM_CHANNEL, MIN_US, MAX_US, CENTER_US};
+        PWM pwm_ {TIM_CHANNEL, MIN_US, MAX_US, CENTER_US};
     };
 
 } // namespace hal

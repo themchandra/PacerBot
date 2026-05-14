@@ -1,6 +1,8 @@
 /**
  * @file servo.cpp
  * @brief Servo control using TIM3 PWM channel 2.
+ * @author Hayden Mai
+ * @date May-13-2026
  */
 
 #include "hal/servo.h"

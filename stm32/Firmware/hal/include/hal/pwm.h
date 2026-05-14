@@ -1,14 +1,21 @@
-#pragma once
+/**
+ * @file pwm.h
+ * @brief PWM output wrapper
+ * @author Hayden Mai
+ * @date May-13-2026
+ */
+
+#ifndef HAL_PWM_H_
+#define HAL_PWM_H_
 
 #include "main.h"
-
 #include <cstdint>
 
 namespace hal {
 
-    class Pwm {
+    class PWM {
       public:
-        Pwm(uint32_t channel, uint16_t min_us, uint16_t max_us, uint16_t neutral_us);
+        PWM(uint32_t channel, uint16_t min_us, uint16_t max_us, uint16_t neutral_us);
 
         bool init(TIM_HandleTypeDef *timer);
         void setPulseUs(uint16_t pulseUs);
@@ -24,3 +31,5 @@ namespace hal {
     };
 
 } // namespace hal
+
+#endif

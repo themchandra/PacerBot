@@ -1,5 +1,4 @@
 # CMakeList.txt for HAL 
-# PWM naming cleanup uses snake_case _us variable names.
 #   Build a library (`hal`) which exposes the header files as "hal/*.h"
 #   Use header as: #include "hal/button.h"
 

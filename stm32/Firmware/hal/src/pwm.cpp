@@ -1,18 +1,20 @@
 /**
- * @file pwm.cpp
- * @brief Shared PWM output helper.
+ * @file pwm.h
+ * @brief PWM output wrapper
+ * @author Hayden Mai
+ * @date May-13-2026
  */
 
 #include "hal/pwm.h"
 
 namespace hal {
 
-    Pwm::Pwm(uint32_t channel, uint16_t min_us, uint16_t max_us, uint16_t neutral_us)
+    PWM::PWM(uint32_t channel, uint16_t min_us, uint16_t max_us, uint16_t neutral_us)
         : channel_ {channel}, min_us_ {min_us}, max_us_ {max_us}, neutral_us_ {neutral_us}
     {}
 
 
-    uint16_t Pwm::clampPulse(uint16_t pulse_us) const
+    uint16_t PWM::clampPulse(uint16_t pulse_us) const
     {
         if (pulse_us < min_us_) {
             return min_us_;
@@ -26,7 +28,7 @@ namespace hal {
     }
 
 
-    bool Pwm::init(TIM_HandleTypeDef *timer)
+    bool PWM::init(TIM_HandleTypeDef *timer)
     {
         if (timer == nullptr) {
             return false;
@@ -43,7 +45,7 @@ namespace hal {
     }
 
 
-    void Pwm::setPulseUs(uint16_t pulse_us)
+    void PWM::setPulseUs(uint16_t pulse_us)
     {
         if (timer_ == nullptr) {
             return;

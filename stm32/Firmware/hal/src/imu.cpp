@@ -1,3 +1,10 @@
+/**
+ * @file imu.cpp
+ * @brief IMU class
+ * @author Michael Chandra
+ * @date May-13-2026
+ */
+
 #include "hal/imu.h"
 #include "stm32f4xx_hal_i2c.h"
 #include <array>

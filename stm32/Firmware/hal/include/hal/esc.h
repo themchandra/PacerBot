@@ -1,4 +1,12 @@
-#pragma once
+/**
+ * @file esc.h
+ * @brief ESC Class, using PWM to control
+ * @author Hayden Mai
+ * @date May-13-2026
+ */
+
+#ifndef HAL_ESC_H_
+#define HAL_ESC_H_
 
 #include "hal/pwm.h"
 
@@ -19,7 +27,9 @@ namespace hal {
       private:
         static constexpr uint32_t TIM_CHANNEL {TIM_CHANNEL_1};
 
-        Pwm pwm_ {TIM_CHANNEL, MIN_US, MAX_US, NEUTRAL_US};
+        PWM pwm_ {TIM_CHANNEL, MIN_US, MAX_US, NEUTRAL_US};
     };
 
 } // namespace hal
+
+#endif

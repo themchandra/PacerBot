@@ -1,6 +1,8 @@
 /**
  * @file esc.cpp
- * @brief ESC control using TIM3 PWM channel 1.
+ * @brief ESC Class, using PWM to control
+ * @author Hayden Mai
+ * @date May-13-2026
  */
 
 #include "hal/esc.h"

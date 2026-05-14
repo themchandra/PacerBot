@@ -1,5 +1,12 @@
-#ifndef IMU_H_
-#define IMU_H_
+/**
+ * @file imu.h
+ * @brief IMU class
+ * @author Michael Chandra
+ * @date May-13-2026
+ */
+
+#ifndef HAL_IMU_H_
+#define HAL_IMU_H_
 
 #include "cmsis_os.h"
 #include "main.h"
