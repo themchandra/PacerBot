@@ -2,7 +2,7 @@
  * @file recv.cpp
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date May-05-2026
+ * @date May-15-2026
  */
 
 #include "comm/uart/recv.h"
@@ -185,7 +185,7 @@ namespace {
         }
 
         const uint8_t packetId = rxBuf_[(startIdx + 1) & RX_BUF_MASK];
-        if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_MOTOR)
+        if (packetId < static_cast<uint8_t>(uart::ePacketID::CMD_TARGET_SPEED)
             || packetId >= static_cast<uint8_t>(uart::ePacketID::TOTAL)) {
             return -1;
         }
