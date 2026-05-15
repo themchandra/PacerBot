@@ -2,7 +2,7 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date May-15-2026
+ * @date Jun-13-2026
  */
 
 #include "app/control_loop.h"
@@ -83,7 +83,7 @@ namespace app {
         uint32_t last_tick_ms {HAL_GetTick()};
 
         // Single IMU data buffer reused across iterations to avoid stack churn.
-        IMUTask::Data imu_data {};
+        IMU::Data imu_data {};
 
         while (isRunning_) {
             // Measure the actual elapsed time for this cycle.
@@ -107,11 +107,7 @@ namespace app {
                 line_position = line_pos_cmd;
             }
 
-            std::printf("[ctrl] line=%.3f\n", line_position);
-
-            // Refresh the IMU speed estimate when available.
-            // Use the planar x/y velocity magnitude so the target is a scalar
-            // speed rather than a single-axis projection.
+            // Refresh the IMU speed measurement when available. 
             if (imu_task_.get_data(imu_data)) {
                 std::printf("[imu ] ax=%.3f ay=%.3f az=%.3f gx=%.3f gy=%.3f gz=%.3f "
                             "vx=%.3f vy=%.3f\n",
