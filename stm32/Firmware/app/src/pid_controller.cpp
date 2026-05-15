@@ -2,7 +2,7 @@
  * @file pid_controller.cpp
  * @brief PID controller implementation (float)
  * @author Hayden Mai
- * @date May-13-2026
+ * @date May-14-2026
  */
 
 #include "app/pid_controller.h"
@@ -10,18 +10,15 @@
 #include <algorithm>
 #include <cmath>
 
-namespace {
-    bool isFinite(float value) { return std::isfinite(value); }
+namespace app {
+
+    bool PIDController::isFinite(float value) { return std::isfinite(value); }
 
 
-    float clampValue(float value, float minValue, float maxValue)
+    float PIDController::clampValue(float value, float minValue, float maxValue)
     {
         return std::clamp(value, minValue, maxValue);
     }
-} // namespace
-
-
-namespace app {
 
     PIDController::PIDController(float kp, float ki, float kd)
     {

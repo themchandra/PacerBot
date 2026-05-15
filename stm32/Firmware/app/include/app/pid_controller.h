@@ -2,7 +2,7 @@
  * @file pid_controller.h
  * @brief PID controller for control loops (float precision)
  * @author Hayden Mai
- * @date May-13-2026
+ * @date May-14-2026
  */
 
 #ifndef APP_PID_CONTROLLER_H_
@@ -177,6 +177,10 @@ namespace app {
         float derivative_filter_tau_ {};
         float derivative_ {};
         float last_output_ {};
+
+        // Helper functions
+        static bool isFinite(float value);
+        static float clampValue(float value, float minValue, float maxValue);
     };
 } // namespace app
 
