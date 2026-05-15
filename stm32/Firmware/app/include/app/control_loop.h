@@ -50,6 +50,19 @@ namespace app {
 
 
       private:
+        // PID gains (tune these constants as needed)
+        static constexpr float KP_SPEED {0.0f};
+        static constexpr float KI_SPEED {0.0f};
+        static constexpr float KD_SPEED {0.0f};
+
+        static constexpr float KP_LINE {0.0f};
+        static constexpr float KI_LINE {0.0f};
+        static constexpr float KD_LINE {0.0f};
+
+        // Normalized PID output range: -1.0 to +1.0
+        static constexpr float PID_OUTPUT_MIN {-1.0f};
+        static constexpr float PID_OUTPUT_MAX {1.0f};
+
         PIDController pid_speed_ {};
         PIDController pid_lines_ {};
 
@@ -85,6 +98,17 @@ namespace app {
          * @brief Main periodic loop body for control updates.
          */
         void threadLoop();
+
+        /**
+         * @brief Convert a normalized PID output into an actuator pulse width.
+         * @param normalized Normalized command in the range [-1.0, 1.0].
+         * @param center_us Neutral pulse width.
+         * @param min_us Minimum pulse width.
+         * @param max_us Maximum pulse width.
+         * @return Pulse width in microseconds.
+         */
+        static uint16_t normalizedToPulse(float normalized, uint16_t center_us,
+                                          uint16_t min_us, uint16_t max_us);
     };
 } // namespace app
 
