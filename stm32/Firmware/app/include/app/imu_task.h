@@ -2,7 +2,7 @@
  * @file imu_task.h
  * @brief Task that reads IMU data for control loops.
  * @author Hayden Mai
- * @date May-14-2026
+ * @date May-15-2026
  */
 
 #ifndef APP_IMU_TASK_H_
@@ -48,12 +48,12 @@ namespace app {
          * available.
          * @return true if a new sample was returned, false if no unread sample exists.
          */
-        bool get_data(IMU::Data &data_out);
+        bool get_data(hal::IMU::Data &data_out);
 
       private:
         static constexpr uint32_t SAMPLE_PERIOD_MS {10};
-        IMU imu_;
-        IMU::Data latest_ {};
+        hal::IMU imu_;
+        hal::IMU::Data latest_ {};
         volatile bool updated_ {false};
         volatile bool isRunning_ {false};
 

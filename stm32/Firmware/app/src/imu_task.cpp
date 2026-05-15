@@ -2,7 +2,7 @@
  * @file imu_task.cpp
  * @brief IMU sampling task for control loop consumption.
  * @author Hayden Mai
- * @date May-14-2026
+ * @date May-15-2026
  */
 
 #include "app/imu_task.h"
@@ -40,7 +40,7 @@ namespace app {
     }
 
 
-    bool IMUTask::get_data(IMU::Data &data_out)
+    bool IMUTask::get_data(hal::IMU::Data &data_out)
     {
         if (!updated_) {
             return false;
@@ -63,6 +63,7 @@ namespace app {
     {
         while (isRunning_) {
             if (!updated_) {
+                // TODO: Add a data filter to reduce noise
                 latest_  = imu_.get_data();
                 updated_ = true;
             }

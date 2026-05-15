@@ -82,7 +82,7 @@ namespace app {
         uint32_t last_tick_ms {HAL_GetTick()};
 
         // Single IMU data buffer reused across iterations to avoid stack churn.
-        IMU::Data imu_data {};
+        hal::IMU::Data imu_data {};
 
         while (isRunning_) {
             // Measure the actual elapsed time for this cycle.
