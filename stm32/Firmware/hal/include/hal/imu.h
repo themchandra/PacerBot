@@ -1,6 +1,6 @@
 /**
  * @file imu.h
- * @brief IMU class
+ * @brief IMU (MPU-6050) HAL wrapper — STM32F4
  * @author Michael Chandra
  * @date May-15-2026
  */
@@ -10,18 +10,10 @@
 
 #include "cmsis_os.h"
 #include "main.h"
-
-#include "stdio.h"
-#include "stm32f411xe.h"
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_i2c.h"
-#include "stm32f4xx_hal_tim.h"
-#include "string.h"
 #include <array>
-#include <stdint.h>
-#include <sys/_intsup.h>
-#include <unistd.h>
+#include <cstdint>
 
 namespace hal {
 
@@ -32,30 +24,36 @@ namespace hal {
             std::array<float, 3> gyro_dps {};
         };
 
-        void scan_i2c();
-        void get_accel_raw(std::array<int, 3> &accel);
-        void get_accel(std::array<float, 3> &accel);
-        void get_gyro_raw(std::array<int, 3> &gyro);
-        void get_gyro(std::array<float, 3> &gyro);
-        Data get_data();
-        IMU(I2C_HandleTypeDef *handle, int address);
+        explicit IMU(I2C_HandleTypeDef *handle, uint8_t address);
+
+        bool init();
+
+        bool get_accel_raw(std::array<int16_t, 3> &accel);
+        bool get_accel(std::array<float, 3> &accel);
+        bool get_gyro_raw(std::array<int16_t, 3> &gyro);
+        bool get_gyro(std::array<float, 3> &gyro);
+        bool get_data(Data &data);
 
       private:
-        // register addresses
-        static constexpr int WHO_AM_I     = 0x75;
-        static constexpr int ACCEL_CONFIG = 0x1C;
-        static constexpr int ACCEL_XOUT_H = 0x3B;
-        static constexpr int ACCEL_YOUT_H = 0x3D;
-        static constexpr int GYRO_XOUT_H  = 0x43;
+        // register map
+        static constexpr uint8_t PWR_MGMT_1 {0x6B};
+        static constexpr uint8_t WHO_AM_I {0x75};
+        static constexpr uint8_t ACCEL_CONFIG {0x1C};
+        static constexpr uint8_t GYRO_CONFIG {0x1B};
+        // burst: 6 accel + 2 temp + 6 gyro = 14 bytes
+        static constexpr uint8_t ACCEL_XOUT_H {0x3B};
 
-        // scale factors
-        static constexpr float ACCEL_SENSITIVITY = 16384.0; // LSB/g
-        static constexpr float GYRO_SENSITIVITY  = 131.0;   // LSB/(deg/s)
+        // scale factors (±2 g / ±250 °/s defaults)
+        static constexpr float ACCEL_SENSITIVITY {16384.0f}; // LSB/g
+        static constexpr float GYRO_SENSITIVITY {131.0f};    // LSB/(°/s)
 
-        // i2c handler
+        bool read_bytes(uint8_t reg, uint8_t *buf, uint16_t len);
+        static void parse_axes(const uint8_t *raw, std::array<int16_t, 3> &out);
+
         I2C_HandleTypeDef *hi2c_;
-        int address_;
+        uint8_t addr_; // already shifted (addr << 1)
     };
 
 } // namespace hal
+
 #endif
