@@ -1,5 +1,9 @@
 # PacerBot
 
+<p align="center">
+  <img src="docs/images/pacerbot_img.jpg" alt="PacerBot" width="640" />
+</p>
+
 PacerBot is an autonomous RC vehicle designed to help runners maintain a target pace.
 
 ## Motivation
