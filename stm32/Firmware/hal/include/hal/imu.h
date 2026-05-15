@@ -2,7 +2,7 @@
  * @file imu.h
  * @brief IMU class
  * @author Michael Chandra
- * @date May-13-2026
+ * @date May-14-2026
  */
 
 #ifndef HAL_IMU_H_
@@ -25,11 +25,17 @@
 
 class IMU {
   public:
+    struct Data {
+        std::array<float, 3> accel_g {};
+        std::array<float, 3> gyro_dps {};
+    };
+
     void scan_i2c();
     void get_accel_raw(std::array<int, 3> &accel);
     void get_accel(std::array<float, 3> &accel);
     void get_gyro_raw(std::array<int, 3> &gyro);
     void get_gyro(std::array<float, 3> &gyro);
+    Data get_data();
     IMU(I2C_HandleTypeDef *handle, int address);
 
   private:

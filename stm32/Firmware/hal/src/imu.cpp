@@ -2,7 +2,7 @@
  * @file imu.cpp
  * @brief IMU class
  * @author Michael Chandra
- * @date May-13-2026
+ * @date May-14-2026
  */
 
 #include "hal/imu.h"
@@ -81,4 +81,12 @@ void IMU::get_gyro(std::array<float, 3> &gyro)
     gyro[0] = raw_gx / GYRO_SENSITIVITY;
     gyro[1] = raw_gy / GYRO_SENSITIVITY;
     gyro[2] = raw_gz / GYRO_SENSITIVITY;
+}
+
+IMU::Data IMU::get_data()
+{
+    Data data {};
+    get_accel(data.accel_g);
+    get_gyro(data.gyro_dps);
+    return data;
 }
