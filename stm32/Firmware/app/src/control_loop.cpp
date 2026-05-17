@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <stdint.h>
 
 namespace app {
@@ -19,6 +20,7 @@ namespace app {
     {
         esc_.init(timer);
         servo_.init(timer);
+        pid_speed_.set_setpoint(SPEED_TEST_SETPOINT_MPS);
         pid_lines_.set_setpoint(0.0f);
 
         // Apply configured PID gains
@@ -73,16 +75,15 @@ namespace app {
 
     void ControlLoop::threadLoop()
     {
-        static constexpr uint32_t CONTROL_PERIOD_MS {10};
-
         // Keep the last values until fresh data arrives.
         float speed_measurement {0.0f};
         float line_position {0.0f};
-        // Start timing from the first loop iteration.
+
+        // Start timing from the first loop iteration so PID dt matches reality.
         uint32_t last_tick_ms {HAL_GetTick()};
 
         // Single IMU data buffer reused across iterations to avoid stack churn.
-        hal::IMU::Data imu_data {};
+        IMUTask::Data imu_data {};
 
         while (isRunning_) {
             // Measure the actual elapsed time for this cycle.
@@ -90,7 +91,6 @@ namespace app {
             uint32_t elapsed_ms {current_tick_ms - last_tick_ms};
             last_tick_ms = current_tick_ms;
 
-            // Prevent a zero dt from millisecond tick resolution.
             if (elapsed_ms == 0U) {
                 elapsed_ms = 1U;
             }
@@ -98,11 +98,8 @@ namespace app {
             // Convert elapsed time to seconds for the PID update.
             const float control_dt_sec = static_cast<float>(elapsed_ms) * 0.001f;
 
-            // Update the speed setpoint when a new command arrives.
-            float target_speed = 0.0f;
-            if (cmd_manager_.get_target_speed(target_speed)) {
-                pid_speed_.set_setpoint(target_speed);
-            }
+            std::printf("[ctrl] dt=%.3f s tick=%lu\n", control_dt_sec,
+                        static_cast<unsigned long>(current_tick_ms));
 
             // Refresh the line command, otherwise reuse the previous one.
             float line_pos_cmd = 0.0f;
@@ -110,15 +107,32 @@ namespace app {
                 line_position = line_pos_cmd;
             }
 
-            // Refresh the IMU speed measurement when available. 
+            std::printf("[ctrl] line=%.3f\n", line_position);
+
+            // Refresh the IMU speed estimate when available.
+            // Use the planar x/y velocity magnitude so the target is a scalar
+            // speed rather than a single-axis projection.
             if (imu_task_.get_data(imu_data)) {
-                speed_measurement = imu_data.accel_g[0];
+                std::printf("[imu ] ax=%.3f ay=%.3f az=%.3f gx=%.3f gy=%.3f gz=%.3f "
+                            "vx=%.3f vy=%.3f\n",
+                            imu_data.imu.accel_g[0], imu_data.imu.accel_g[1],
+                            imu_data.imu.accel_g[2], imu_data.imu.gyro_dps[0],
+                            imu_data.imu.gyro_dps[1], imu_data.imu.gyro_dps[2],
+                            imu_data.velocity_x_mps, imu_data.velocity_y_mps);
+                speed_measurement = imu_data.speed_mps;
             }
+
+            std::printf("[vel ] vx=%.3f vy=%.3f speed=%.3f\n", imu_data.velocity_x_mps,
+                        imu_data.velocity_y_mps, speed_measurement);
 
             // Run both PIDs with the current inputs.
             const float speed_output
                 = pid_speed_.update(speed_measurement, control_dt_sec);
             const float line_output = pid_lines_.update(line_position, control_dt_sec);
+
+            std::printf(
+                "[pid ] speed_out=%.3f speed_meas=%.3f setpoint=%.3f line_out=%.3f\n",
+                speed_output, speed_measurement, pid_speed_.get_setpoint(), line_output);
 
             // Map normalized PID output to actuator pulse widths.
             const auto esc_us = normalizedToPulse(speed_output, hal::ESC::NEUTRAL_US,
@@ -126,6 +140,9 @@ namespace app {
             const auto servo_us
                 = normalizedToPulse(line_output, hal::Servo::CENTER_US,
                                     hal::Servo::MIN_US, hal::Servo::MAX_US);
+
+            std::printf("[out ] esc=%u servo=%u\n", static_cast<unsigned>(esc_us),
+                        static_cast<unsigned>(servo_us));
 
             // Send the new ESC and servo commands.
             esc_.set_pulse_us(esc_us);

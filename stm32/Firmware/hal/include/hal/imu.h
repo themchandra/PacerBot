@@ -19,6 +19,17 @@ namespace hal {
 
     class IMU {
       public:
+        enum class LowPassFilter : uint8_t {
+            BW_260Hz = 0,
+            BW_184Hz = 1,
+            BW_94Hz  = 2,
+            BW_44Hz  = 3,
+            BW_21Hz  = 4,
+            BW_10Hz  = 5,
+            BW_5Hz   = 6,
+            Disabled = 7,
+        };
+
         struct Data {
             std::array<float, 3> accel_g {};
             std::array<float, 3> gyro_dps {};
@@ -26,7 +37,9 @@ namespace hal {
 
         explicit IMU(I2C_HandleTypeDef *handle, uint8_t address);
 
-        bool init();
+        bool init(LowPassFilter filter = LowPassFilter::BW_44Hz);
+        bool set_low_pass_filter(LowPassFilter filter);
+        bool calibrate(uint16_t sample_count = 200, uint32_t sample_delay_ms = 5);
 
         bool get_accel_raw(std::array<int16_t, 3> &accel);
         bool get_accel(std::array<float, 3> &accel);
@@ -36,6 +49,7 @@ namespace hal {
 
       private:
         // register map
+        static constexpr uint8_t CONFIG {0x1A};
         static constexpr uint8_t PWR_MGMT_1 {0x6B};
         static constexpr uint8_t WHO_AM_I {0x75};
         static constexpr uint8_t ACCEL_CONFIG {0x1C};
@@ -48,10 +62,15 @@ namespace hal {
         static constexpr float GYRO_SENSITIVITY {131.0f};    // LSB/(°/s)
 
         bool read_bytes(uint8_t reg, uint8_t *buf, uint16_t len);
+        bool write_byte(uint8_t reg, uint8_t value);
         static void parse_axes(const uint8_t *raw, std::array<int16_t, 3> &out);
+        void apply_bias(std::array<float, 3> &values,
+                        const std::array<float, 3> &bias) const;
 
         I2C_HandleTypeDef *hi2c_;
         uint8_t addr_; // already shifted (addr << 1)
+        std::array<float, 3> accel_bias_g_ {};
+        std::array<float, 3> gyro_bias_dps_ {};
     };
 
 } // namespace hal

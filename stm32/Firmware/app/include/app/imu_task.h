@@ -24,6 +24,13 @@ namespace app {
      */
     class IMUTask {
       public:
+        struct Data {
+            hal::IMU::Data imu {};
+            float velocity_x_mps {0.0f};
+            float velocity_y_mps {0.0f};
+            float speed_mps {0.0f};
+        };
+
         /**
          * @brief Construct IMU task with peripheral and device address.
          * @param i2c I2C handle used for sensor communication.
@@ -48,12 +55,16 @@ namespace app {
          * available.
          * @return true if a new sample was returned, false if no unread sample exists.
          */
-        bool get_data(hal::IMU::Data &data_out);
+        bool get_data(Data &data_out);
 
       private:
-        static constexpr uint32_t SAMPLE_PERIOD_MS {10};
+        static constexpr uint32_t SAMPLE_PERIOD_MS {1};
+        static constexpr hal::IMU::LowPassFilter FILTER {
+            hal::IMU::LowPassFilter::BW_21Hz};
+        static constexpr float GRAVITY_MPS2 {9.80665f};
+
         hal::IMU imu_;
-        hal::IMU::Data latest_ {};
+        Data latest_ {};
         volatile bool updated_ {false};
         volatile bool isRunning_ {false};
 

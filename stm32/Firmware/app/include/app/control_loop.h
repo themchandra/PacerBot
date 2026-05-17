@@ -50,8 +50,15 @@ namespace app {
 
 
       private:
+        // Temporary test target for IMU-driven speed control.
+        static constexpr float SPEED_TEST_SETPOINT_MPS {1.0f};
+
+        // Control loop timing and IMU conversion constants.
+        static constexpr uint32_t CONTROL_PERIOD_MS {1000};
+        static constexpr float GRAVITY_MPS2 {9.80665f};
+
         // PID gains (tune these constants as needed)
-        static constexpr float KP_SPEED {0.0f};
+        static constexpr float KP_SPEED {0.05f};
         static constexpr float KI_SPEED {0.0f};
         static constexpr float KD_SPEED {0.0f};
 
@@ -72,7 +79,7 @@ namespace app {
         IMUTask &imu_task_;
         CMDManager &cmd_manager_;
 
-        static constexpr uint32_t STACK_SIZE_BYTES {512};
+        static constexpr uint32_t STACK_SIZE_BYTES {1024};
         static constexpr osThreadAttr_t task_att_ {
             .name       = "ControlLoopTask",
             .attr_bits  = 0,
