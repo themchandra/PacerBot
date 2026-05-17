@@ -5,4 +5,4 @@ file(GLOB MY_SOURCES "src/*.cpp")
 add_executable(pacerBot ${MY_SOURCES})
 
 # Make use of libraries
-target_link_libraries(pacerBot PRIVATE hal comm_uart)
+target_link_libraries(pacerBot PRIVATE hal comm_uart comm_ipc)
