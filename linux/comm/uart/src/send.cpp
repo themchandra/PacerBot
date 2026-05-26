@@ -13,8 +13,9 @@
 #include <mutex>
 #include <optional>
 #include <queue>
-#include <semaphore>
 #include <thread>
+
+#include "comm/uart/semaphore_compat.h"
 
 namespace {
     bool isInitialized_ {false};
@@ -29,7 +30,7 @@ namespace {
     std::atomic_bool isThreadRunning_ {false};
     std::thread thread_;
     std::mutex queue_mtx_;
-    std::counting_semaphore<uart::config::MAX_TX_QUEUE_SIZE> queue_sem_(0);
+    uart::CountingSemaphore queue_sem_ {0};
 
 
     void thread_loop()

@@ -11,9 +11,9 @@
 #include <array>
 #include <mutex>
 #include <queue>
-#include <semaphore>
 
 #include "comm/uart/packet_info.h"
+#include "comm/uart/semaphore_compat.h"
 
 namespace uart {
     class SubscriberHandle {
@@ -30,7 +30,7 @@ namespace uart {
         std::array<bool, static_cast<uint8_t>(ePacketID::TOTAL)> filter_;
         std::queue<DataPacket> queue_;
         std::mutex mtx_;
-        std::counting_semaphore<MAX_COUNT> sem_ {0};
+        CountingSemaphore sem_ {0};
     };
 } // namespace uart
 
