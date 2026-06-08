@@ -22,6 +22,7 @@
 extern "C" {
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 }
 
 // IMU I2C device address
@@ -29,8 +30,9 @@ constexpr int IMU_ADDRESS = 0x68;
 
 extern "C" void app_main(void)
 {
-    // Initialize UART for command reception
-    uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
+    // Initialize UART for command reception (use USART2/huart2 so host
+    // USB-CDC `/dev/ttyACM0` carries command packets)
+    uart::manager::init(&huart2, uart::manager::eUARTInstance::UART_2);
     uart::manager::start();
 
     // Create and start command manager
@@ -45,11 +47,8 @@ extern "C" void app_main(void)
     app::ControlLoop control_loop(&htim3, imu_task, cmd_manager);
     control_loop.start();
 
-    // Main idle loop - flash LED briefly every 5 seconds
+    // Main idle loop - leave LED control to packet handler for debugging
     while (true) {
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-        osDelay(100);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-        osDelay(4900);
+        osDelay(1000);
     }
 }

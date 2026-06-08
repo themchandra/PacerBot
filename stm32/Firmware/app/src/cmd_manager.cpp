@@ -104,6 +104,9 @@ namespace app {
         if (packet.id == uart::ePacketID::TELEM_LINE_POS) {
             line_pos_     = value;
             has_line_pos_ = true;
+            // Toggle on-board LED to visibly confirm packet reception
+            HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+            printf("STM32 got line pos: %f\n\r", value);
         }
     }
 
