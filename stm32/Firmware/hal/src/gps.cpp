@@ -2,14 +2,13 @@
  * @file gps.cpp
  * @brief GPS class implementation — async DMA NMEA parsing on a single UART
  * @author Hayden Mai
- * @date Jun-12-2026
+ * @date Jun-13-2026
  */
 
 #include "hal/gps.h"
 
 #include "stm32f4xx_hal.h"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -51,13 +50,13 @@ namespace hal {
     }
 
 
-    double GPS::nmeaToDecimalDeg(const char *field, int degDigits)
+    float GPS::nmeaToDecimalDeg(const char *field, int degDigits)
     {
-        const double raw = atof(field);
-        const int deg    = static_cast<int>(raw / 100.0);
-        const double min = raw - deg * 100.0;
+        const float raw = strtof(field, nullptr);
+        const int deg   = static_cast<int>(raw / 100.0f);
+        const float min = raw - deg * 100.0f;
         (void)degDigits;
-        return deg + min / 60.0;
+        return deg + min / 60.0f;
     }
 
     GPS::GPS(UART_HandleTypeDef *huart) : huart_(huart)
@@ -72,19 +71,21 @@ namespace hal {
         dmaIdx_  = 0;
         lineLen_ = 0;
 
-        const HAL_StatusTypeDef status
-            = HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
-        if (status != HAL_OK) {
-            printf("GPS: failed to start DMA receive (status=%d)\n\r", status);
-            return;
-        }
-
+        // Create the task BEFORE starting DMA so that taskHandle_ is always
+        // valid by the time onRxEvent() can be called from the IDLE interrupt.
         isTaskRunning_ = true;
         taskHandle_    = osThreadNew(taskTrampoline, this, &kTaskAttr);
         if (taskHandle_ == nullptr) {
             isTaskRunning_ = false;
-            HAL_UART_DMAStop(huart_);
-            printf("GPS: failed to create task\n\r");
+            return;
+        }
+
+        const HAL_StatusTypeDef status
+            = HAL_UARTEx_ReceiveToIdle_DMA(huart_, rxBuf_, RX_BUF_SIZE);
+        if (status != HAL_OK) {
+            isTaskRunning_ = false;
+            osThreadTerminate(taskHandle_);
+            taskHandle_ = nullptr;
         }
     }
 
@@ -126,9 +127,12 @@ namespace hal {
             const uint32_t flags
                 = osThreadFlagsWait(FLAGS_VALUE, osFlagsWaitAny, FLAG_TIMEOUT_MS);
 
-            // On timeout, poll DMA counter directly
+            // On timeout, poll DMA counter — but only while DMA is actually running
+            // to avoid reading stale NDTR before HAL_UARTEx_ReceiveToIdle_DMA starts.
             if (flags != FLAGS_VALUE) {
-                dmaIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
+                if (huart_->hdmarx->State == HAL_DMA_STATE_BUSY) {
+                    dmaIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
+                }
             }
 
             processBytes(dmaIdx_);
@@ -149,9 +153,11 @@ namespace hal {
             return;
         }
 
-        if (available >= RX_BUF_SIZE) {
+        // > rather than >= so that exactly RX_BUF_SIZE available bytes (the
+        // DMA full-complete callback giving size=RX_BUF_SIZE) is treated as a
+        // normal full-buffer read rather than a false overflow.
+        if (available > RX_BUF_SIZE) {
             curIdx_ = newEnd;
-            printf("GPS: buffer overflow\n\r");
             return;
         }
 
@@ -169,7 +175,10 @@ namespace hal {
             }
         }
 
-        curIdx_ = newEnd;
+        // Normalise to 0 when newEnd == RX_BUF_SIZE so that a consecutive TC
+        // callback (also reporting size == RX_BUF_SIZE) is not treated as 0
+        // new bytes available.
+        curIdx_ = newEnd % RX_BUF_SIZE;
     }
 
 
@@ -229,19 +238,19 @@ namespace hal {
         }
         getField(s, 9, altStr, sizeof(altStr)); // altitude can be absent
 
-        double lat = nmeaToDecimalDeg(latStr, 2);
+        float lat = nmeaToDecimalDeg(latStr, 2);
         if (nsStr[0] == 'S') {
             lat = -lat;
         }
 
-        double lon = nmeaToDecimalDeg(lonStr, 3);
+        float lon = nmeaToDecimalDeg(lonStr, 3);
         if (ewStr[0] == 'W') {
             lon = -lon;
         }
 
         const uint8_t fixQual  = static_cast<uint8_t>(atoi(fixStr));
         const uint8_t satsUsed = static_cast<uint8_t>(atoi(satStr));
-        const double altM      = atof(altStr);
+        const float altM       = strtof(altStr, nullptr);
 
         osMutexAcquire(dataMutex_, osWaitForever);
         data_.lat_deg   = lat;
@@ -287,18 +296,18 @@ namespace hal {
 
         const bool valid = (statusStr[0] == 'A');
 
-        double lat = nmeaToDecimalDeg(latStr, 2);
+        float lat = nmeaToDecimalDeg(latStr, 2);
         if (nsStr[0] == 'S') {
             lat = -lat;
         }
 
-        double lon = nmeaToDecimalDeg(lonStr, 3);
+        float lon = nmeaToDecimalDeg(lonStr, 3);
         if (ewStr[0] == 'W') {
             lon = -lon;
         }
 
-        const double speedMps   = atof(speedStr) * 0.514444;
-        const double headingDeg = atof(courseStr);
+        const float speedMps   = strtof(speedStr, nullptr) * 0.514444f;
+        const float headingDeg = strtof(courseStr, nullptr);
 
         osMutexAcquire(dataMutex_, osWaitForever);
         data_.valid       = valid;

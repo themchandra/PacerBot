@@ -2,14 +2,18 @@
  * @file callbacks.h
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Dec-13-2025
+ * @date Jun-13-2026
  */
 
 #ifndef UART_CALLBACKS_H_
 #define UART_CALLBACKS_H_
 
 #include "comm/uart/manager.h"
-#include "hal/gps.h"
+
+// Forward declaration — full definition only needed in callbacks.cpp
+namespace hal {
+    class GPS;
+}
 
 namespace uart::callbacks {
     /**

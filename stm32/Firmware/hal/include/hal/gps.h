@@ -2,7 +2,7 @@
  * @file gps.h
  * @brief GPS class for async DMA NMEA parsing
  * @author Hayden Mai
- * @date Jun-12-2026
+ * @date Jun-13-2026
  */
 
 #ifndef HAL_GPS_H_
@@ -18,11 +18,11 @@ namespace hal {
     class GPS {
       public:
         struct Data {
-            double lat_deg {};
-            double lon_deg {};
-            double alt_m {};
-            double speed_mps {};
-            double heading_deg {};
+            float lat_deg {};
+            float lon_deg {};
+            float alt_m {};
+            float speed_mps {};
+            float heading_deg {};
             uint8_t sats_used {};
             uint8_t fix_qual {};
             bool valid {};
@@ -68,7 +68,7 @@ namespace hal {
       private:
         static constexpr uint16_t RX_BUF_SIZE {512};
         static constexpr uint16_t LINE_BUF_SIZE {128};
-        static constexpr uint32_t STACK_BYTES {768};
+        static constexpr uint32_t STACK_BYTES {2048};
         static constexpr uint32_t FLAGS_VALUE {0x01};
         static constexpr uint32_t FLAG_TIMEOUT_MS {10};
 
@@ -150,7 +150,7 @@ namespace hal {
          * longitude.
          * @return Decimal degrees (always positive — apply N/S or E/W sign after).
          */
-        static double nmeaToDecimalDeg(const char *field, int degDigits);
+        static float nmeaToDecimalDeg(const char *field, int degDigits);
     };
 
 } // namespace hal
