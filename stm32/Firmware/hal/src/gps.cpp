@@ -1,6 +1,6 @@
 /**
  * @file gps.cpp
- * @brief GPS class implementation — async DMA NMEA parsing on a single UART
+ * @brief GPS class implementation — async DMA u-blox UBX parsing on a single UART
  * @author Hayden Mai
  * @date Jun-13-2026
  */
@@ -9,55 +9,14 @@
 
 #include "stm32f4xx_hal.h"
 
-#include <cstdlib>
-#include <cstring>
+#include <cstdio>
 
 namespace hal {
 
-    /**
-     * @brief Extract the Nth comma-separated field from an NMEA sentence.
-     * @param sentence Null-terminated NMEA sentence string.
-     * @param fieldNum 1-based field index (field 1 is the first value after the
-     *                 sentence ID).
-     * @param out Output buffer.
-     * @param outLen Size of the output buffer including the null terminator.
-     * @return true if a non-empty field was found, false otherwise.
-     */
-    bool GPS::getField(const char *sentence, int fieldNum, char *out, size_t outLen)
-    {
-        const char *p = sentence;
-        int field     = 0;
-
-        while (*p != '\0') {
-            if (*p == ',') {
-                ++field;
-                ++p;
-                if (field == fieldNum) {
-                    size_t i = 0;
-                    while (*p != ',' && *p != '*' && *p != '\0' && i < outLen - 1) {
-                        out[i++] = *p++;
-                    }
-                    out[i] = '\0';
-                    return i > 0;
-                }
-            } else {
-                ++p;
-            }
-        }
-
-        out[0] = '\0';
-        return false;
-    }
-
-
-    float GPS::nmeaToDecimalDeg(const char *field, int degDigits)
-    {
-        const float raw = strtof(field, nullptr);
-        const int deg   = static_cast<int>(raw / 100.0f);
-        const float min = raw - deg * 100.0f;
-        (void)degDigits;
-        return deg + min / 60.0f;
-    }
+    namespace {
+        constexpr bool kGpsDebug {false};
+        constexpr uint32_t kIdleReportMs {2000};
+    } // namespace
 
     GPS::GPS(UART_HandleTypeDef *huart) : huart_(huart)
     {
@@ -67,16 +26,17 @@ namespace hal {
 
     void GPS::start()
     {
-        curIdx_  = 0;
-        dmaIdx_  = 0;
-        lineLen_ = 0;
+        curIdx_ = 0;
+        dmaIdx_ = 0;
+        resetUbxParser();
 
-        // Create the task BEFORE starting DMA so that taskHandle_ is always
-        // valid by the time onRxEvent() can be called from the IDLE interrupt.
         isTaskRunning_ = true;
         taskHandle_    = osThreadNew(taskTrampoline, this, &kTaskAttr);
         if (taskHandle_ == nullptr) {
             isTaskRunning_ = false;
+            if (kGpsDebug) {
+                std::printf("GPS: failed to create parse task\n\r");
+            }
             return;
         }
 
@@ -86,6 +46,20 @@ namespace hal {
             isTaskRunning_ = false;
             osThreadTerminate(taskHandle_);
             taskHandle_ = nullptr;
+            if (kGpsDebug) {
+                std::printf("GPS: DMA start failed (status=%d)\n\r",
+                            static_cast<int>(status));
+            }
+            return;
+        }
+
+        if (kGpsDebug) {
+            std::printf("GPS: UBX parser started on USART%lu @ %lu baud\n\r",
+                        static_cast<unsigned long>((huart_->Instance == USART6)   ? 6
+                                                   : (huart_->Instance == USART2) ? 2
+                                                   : (huart_->Instance == USART1) ? 1
+                                                                                  : 0),
+                        static_cast<unsigned long>(huart_->Init.BaudRate));
         }
     }
 
@@ -105,6 +79,7 @@ namespace hal {
     void GPS::onRxEvent(uint16_t size)
     {
         dmaIdx_ = size;
+        rxEventCount_.fetch_add(1, std::memory_order_relaxed);
         osThreadFlagsSet(taskHandle_, FLAGS_VALUE);
     }
 
@@ -123,19 +98,34 @@ namespace hal {
 
     void GPS::taskLoop()
     {
+        uint32_t lastActivityMs = osKernelGetTickCount();
+
         while (isTaskRunning_) {
             const uint32_t flags
                 = osThreadFlagsWait(FLAGS_VALUE, osFlagsWaitAny, FLAG_TIMEOUT_MS);
 
-            // On timeout, poll DMA counter — but only while DMA is actually running
-            // to avoid reading stale NDTR before HAL_UARTEx_ReceiveToIdle_DMA starts.
             if (flags != FLAGS_VALUE) {
                 if (huart_->hdmarx->State == HAL_DMA_STATE_BUSY) {
                     dmaIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);
                 }
             }
 
+            const uint16_t prevTotalBytes = totalBytesReceived_;
             processBytes(dmaIdx_);
+
+            if (totalBytesReceived_ != prevTotalBytes) {
+                lastActivityMs = osKernelGetTickCount();
+            } else if (kGpsDebug) {
+                const uint32_t now = osKernelGetTickCount();
+                if ((now - lastActivityMs) >= kIdleReportMs) {
+                    std::printf("GPS: idle — rxEvents=%lu, totalBytes=%u, dmaIdx=%u\n\r",
+                                static_cast<unsigned long>(
+                                    rxEventCount_.load(std::memory_order_relaxed)),
+                                static_cast<unsigned>(totalBytesReceived_),
+                                static_cast<unsigned>(dmaIdx_));
+                    lastActivityMs = now;
+                }
+            }
         }
     }
 
@@ -153,169 +143,163 @@ namespace hal {
             return;
         }
 
-        // > rather than >= so that exactly RX_BUF_SIZE available bytes (the
-        // DMA full-complete callback giving size=RX_BUF_SIZE) is treated as a
-        // normal full-buffer read rather than a false overflow.
+        totalBytesReceived_ += available;
+
         if (available > RX_BUF_SIZE) {
             curIdx_ = newEnd;
             return;
         }
 
         for (uint16_t i = 0; i < available; ++i) {
-            const char c = static_cast<char>(rxBuf_[(curIdx_ + i) % RX_BUF_SIZE]);
-
-            if (c == '\n') {
-                lineBuf_[lineLen_] = '\0';
-                if (lineLen_ > 0) {
-                    parseLine();
-                }
-                lineLen_ = 0;
-            } else if (c != '\r' && lineLen_ < LINE_BUF_SIZE - 1) {
-                lineBuf_[lineLen_++] = c;
-            }
+            processByte(rxBuf_[(curIdx_ + i) % RX_BUF_SIZE]);
         }
 
-        // Normalise to 0 when newEnd == RX_BUF_SIZE so that a consecutive TC
-        // callback (also reporting size == RX_BUF_SIZE) is not treated as 0
-        // new bytes available.
         curIdx_ = newEnd % RX_BUF_SIZE;
     }
 
 
-    void GPS::parseLine()
+    void GPS::resetUbxParser()
     {
-        // Locate the checksum delimiter
-        char *star = strchr(lineBuf_, '*');
-        if (star == nullptr) {
-            return;
-        }
+        ubxState_      = UbxState::Sync1;
+        ubxClass_      = 0;
+        ubxId_         = 0;
+        ubxLen_        = 0;
+        ubxPayloadIdx_ = 0;
+        ubxCkA_        = 0;
+        ubxCkB_        = 0;
+        ubxFrameCkA_   = 0;
+    }
 
-        // Verify XOR checksum over characters between '$' and '*' (exclusive)
-        uint8_t calc = 0;
-        for (const char *p = lineBuf_ + 1; p < star; ++p) {
-            calc ^= static_cast<uint8_t>(*p);
-        }
 
-        const uint8_t recv = static_cast<uint8_t>(strtoul(star + 1, nullptr, 16));
-        if (calc != recv) {
-            return;
-        }
+    void GPS::ubxUpdateCk(uint8_t byte)
+    {
+        ubxCkA_ = static_cast<uint8_t>(ubxCkA_ + byte);
+        ubxCkB_ = static_cast<uint8_t>(ubxCkB_ + ubxCkA_);
+    }
 
-        if (strncmp(lineBuf_, "$GNGGA", 6) == 0 || strncmp(lineBuf_, "$GPGGA", 6) == 0) {
-            parseGGA(lineBuf_);
-        } else if (strncmp(lineBuf_, "$GNRMC", 6) == 0
-                   || strncmp(lineBuf_, "$GPRMC", 6) == 0) {
-            parseRMC(lineBuf_);
+
+    void GPS::processByte(uint8_t byte)
+    {
+        switch (ubxState_) {
+        case UbxState::Sync1:
+            if (byte == UBX_SYNC1) {
+                ubxState_ = UbxState::Sync2;
+            }
+            break;
+
+        case UbxState::Sync2:
+            if (byte == UBX_SYNC2) {
+                ubxCkA_        = 0;
+                ubxCkB_        = 0;
+                ubxPayloadIdx_ = 0;
+                ubxState_      = UbxState::Class;
+            } else {
+                ubxState_ = (byte == UBX_SYNC1) ? UbxState::Sync2 : UbxState::Sync1;
+            }
+            break;
+
+        case UbxState::Class:
+            ubxClass_ = byte;
+            ubxUpdateCk(byte);
+            ubxState_ = UbxState::Id;
+            break;
+
+        case UbxState::Id:
+            ubxId_ = byte;
+            ubxUpdateCk(byte);
+            ubxState_ = UbxState::LenLo;
+            break;
+
+        case UbxState::LenLo:
+            ubxLen_ = byte;
+            ubxUpdateCk(byte);
+            ubxState_ = UbxState::LenHi;
+            break;
+
+        case UbxState::LenHi:
+            ubxLen_ |= static_cast<uint16_t>(byte) << 8;
+            ubxUpdateCk(byte);
+            if (ubxLen_ > UBX_MAX_PAYLOAD) {
+                resetUbxParser();
+                break;
+            }
+            ubxPayloadIdx_ = 0;
+            ubxState_      = (ubxLen_ == 0) ? UbxState::CkA : UbxState::Payload;
+            break;
+
+        case UbxState::Payload:
+            ubxPayload_[ubxPayloadIdx_++] = byte;
+            ubxUpdateCk(byte);
+            if (ubxPayloadIdx_ >= ubxLen_) {
+                ubxState_ = UbxState::CkA;
+            }
+            break;
+
+        case UbxState::CkA:
+            ubxFrameCkA_ = byte;
+            ubxState_    = UbxState::CkB;
+            break;
+
+        case UbxState::CkB:
+            if (ubxCkA_ == ubxFrameCkA_ && ubxCkB_ == byte) {
+                dispatchUbx(ubxClass_, ubxId_, ubxPayload_, ubxLen_);
+            }
+            resetUbxParser();
+            break;
         }
     }
 
 
-    bool GPS::parseGGA(const char *s)
+    void GPS::dispatchUbx(uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t len)
     {
-        char latStr[16] {}, nsStr[4] {};
-        char lonStr[16] {}, ewStr[4] {};
-        char fixStr[4] {}, satStr[4] {};
-        char altStr[16] {};
-
-        // GGA: $--GGA,f1=time,f2=lat,f3=N/S,f4=lon,f5=E/W,f6=fix,f7=sats,...,f9=alt,...
-        if (!getField(s, 2, latStr, sizeof(latStr))) {
-            return false;
+        if (cls == UBX_CLASS_NAV && id == UBX_ID_NAV_PVT) {
+            parseNavPvt(payload, len);
         }
-        if (!getField(s, 3, nsStr, sizeof(nsStr))) {
-            return false;
-        }
-        if (!getField(s, 4, lonStr, sizeof(lonStr))) {
-            return false;
-        }
-        if (!getField(s, 5, ewStr, sizeof(ewStr))) {
-            return false;
-        }
-        if (!getField(s, 6, fixStr, sizeof(fixStr))) {
-            return false;
-        }
-        if (!getField(s, 7, satStr, sizeof(satStr))) {
-            return false;
-        }
-        getField(s, 9, altStr, sizeof(altStr)); // altitude can be absent
-
-        float lat = nmeaToDecimalDeg(latStr, 2);
-        if (nsStr[0] == 'S') {
-            lat = -lat;
-        }
-
-        float lon = nmeaToDecimalDeg(lonStr, 3);
-        if (ewStr[0] == 'W') {
-            lon = -lon;
-        }
-
-        const uint8_t fixQual  = static_cast<uint8_t>(atoi(fixStr));
-        const uint8_t satsUsed = static_cast<uint8_t>(atoi(satStr));
-        const float altM       = strtof(altStr, nullptr);
-
-        osMutexAcquire(dataMutex_, osWaitForever);
-        data_.lat_deg   = lat;
-        data_.lon_deg   = lon;
-        data_.alt_m     = altM;
-        data_.fix_qual  = fixQual;
-        data_.sats_used = satsUsed;
-        osMutexRelease(dataMutex_);
-
-        return true;
     }
 
 
-    bool GPS::parseRMC(const char *s)
+    int32_t GPS::readI32(const uint8_t *p)
     {
-        char statusStr[4] {};
-        char latStr[16] {}, nsStr[4] {};
-        char lonStr[16] {}, ewStr[4] {};
-        char speedStr[16] {};
-        char courseStr[16] {};
+        return static_cast<int32_t>(
+            static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8)
+            | (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24));
+    }
 
-        // RMC:
-        // $--RMC,f1=time,f2=A/V,f3=lat,f4=N/S,f5=lon,f6=E/W,f7=speed_kn,f8=course,...
-        if (!getField(s, 2, statusStr, sizeof(statusStr))) {
-            return false;
-        }
-        if (!getField(s, 3, latStr, sizeof(latStr))) {
-            return false;
-        }
-        if (!getField(s, 4, nsStr, sizeof(nsStr))) {
-            return false;
-        }
-        if (!getField(s, 5, lonStr, sizeof(lonStr))) {
-            return false;
-        }
-        if (!getField(s, 6, ewStr, sizeof(ewStr))) {
-            return false;
-        }
-        if (!getField(s, 7, speedStr, sizeof(speedStr))) {
-            return false;
-        }
-        getField(s, 8, courseStr, sizeof(courseStr)); // heading absent when stationary
 
-        const bool valid = (statusStr[0] == 'A');
-
-        float lat = nmeaToDecimalDeg(latStr, 2);
-        if (nsStr[0] == 'S') {
-            lat = -lat;
+    bool GPS::parseNavPvt(const uint8_t *payload, uint16_t len)
+    {
+        if (len < UBX_NAV_PVT_MIN_LEN) {
+            return false;
         }
 
-        float lon = nmeaToDecimalDeg(lonStr, 3);
-        if (ewStr[0] == 'W') {
-            lon = -lon;
-        }
+        const uint8_t fixType = payload[20];
+        const uint8_t flags   = payload[21];
+        const uint8_t numSv   = payload[23];
+        const int32_t lon     = readI32(payload + 24);
+        const int32_t lat     = readI32(payload + 28);
+        const int32_t hMsl    = readI32(payload + 36);
+        const int32_t gSpeed  = readI32(payload + 60);
+        const int32_t headMot = readI32(payload + 64);
 
-        const float speedMps   = strtof(speedStr, nullptr) * 0.514444f;
-        const float headingDeg = strtof(courseStr, nullptr);
+        const bool valid = (fixType >= 2) && ((flags & 0x01U) != 0U);
 
         osMutexAcquire(dataMutex_, osWaitForever);
+        data_.lat_deg     = static_cast<float>(lat) * 1.0e-7f;
+        data_.lon_deg     = static_cast<float>(lon) * 1.0e-7f;
+        data_.alt_m       = static_cast<float>(hMsl) / 1000.0f;
+        data_.speed_mps   = static_cast<float>(gSpeed) / 1000.0f;
+        data_.heading_deg = static_cast<float>(headMot) * 1.0e-5f;
+        data_.sats_used   = numSv;
+        data_.fix_qual    = fixType;
         data_.valid       = valid;
-        data_.lat_deg     = lat;
-        data_.lon_deg     = lon;
-        data_.speed_mps   = speedMps;
-        data_.heading_deg = headingDeg;
         osMutexRelease(dataMutex_);
+
+        if (kGpsDebug) {
+            std::printf("GPS: NAV-PVT fix=%u sats=%u valid=%d lat=%.6f lon=%.6f\r\n",
+                        static_cast<unsigned>(fixType), static_cast<unsigned>(numSv),
+                        static_cast<int>(valid), static_cast<double>(data_.lat_deg),
+                        static_cast<double>(data_.lon_deg));
+        }
 
         return true;
     }

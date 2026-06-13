@@ -1,6 +1,6 @@
 /**
  * @file gps.h
- * @brief GPS class for async DMA NMEA parsing
+ * @brief GPS class for async DMA u-blox UBX parsing
  * @author Hayden Mai
  * @date Jun-13-2026
  */
@@ -11,6 +11,7 @@
 #include "cmsis_os.h"
 #include "main.h"
 
+#include <atomic>
 #include <cstdint>
 
 namespace hal {
@@ -38,7 +39,6 @@ namespace hal {
 
         /**
          * @brief Start DMA receive and spawn the parse task.
-         * @note Resets buffer indices and line accumulator before starting.
          */
         void start();
 
@@ -67,10 +67,28 @@ namespace hal {
 
       private:
         static constexpr uint16_t RX_BUF_SIZE {512};
-        static constexpr uint16_t LINE_BUF_SIZE {128};
+        static constexpr uint16_t UBX_MAX_PAYLOAD {256};
         static constexpr uint32_t STACK_BYTES {2048};
         static constexpr uint32_t FLAGS_VALUE {0x01};
         static constexpr uint32_t FLAG_TIMEOUT_MS {10};
+
+        static constexpr uint8_t UBX_SYNC1 {0xB5};
+        static constexpr uint8_t UBX_SYNC2 {0x62};
+        static constexpr uint8_t UBX_CLASS_NAV {0x01};
+        static constexpr uint8_t UBX_ID_NAV_PVT {0x07};
+        static constexpr uint16_t UBX_NAV_PVT_MIN_LEN {92};
+
+        enum class UbxState : uint8_t {
+            Sync1,
+            Sync2,
+            Class,
+            Id,
+            LenLo,
+            LenHi,
+            Payload,
+            CkA,
+            CkB,
+        };
 
         static constexpr osThreadAttr_t kTaskAttr {
             .name       = "gpsTask",
@@ -84,73 +102,39 @@ namespace hal {
             .reserved   = 0,
         };
 
-        // DMA circular buffer
         UART_HandleTypeDef *huart_;
         uint8_t rxBuf_[RX_BUF_SIZE] {};
-        uint16_t curIdx_ {}; // parse head, updated by task
-        uint16_t dmaIdx_ {}; // DMA write position, updated by onRxEvent
+        uint16_t curIdx_ {};
+        uint16_t dmaIdx_ {};
 
-        // NMEA line accumulator
-        char lineBuf_[LINE_BUF_SIZE] {};
-        uint16_t lineLen_ {};
+        UbxState ubxState_ {UbxState::Sync1};
+        uint8_t ubxClass_ {};
+        uint8_t ubxId_ {};
+        uint16_t ubxLen_ {};
+        uint16_t ubxPayloadIdx_ {};
+        uint8_t ubxPayload_[UBX_MAX_PAYLOAD] {};
+        uint8_t ubxCkA_ {};
+        uint8_t ubxCkB_ {};
+        uint8_t ubxFrameCkA_ {};
 
-        // Latest parsed data, guarded by mutex
         Data data_ {};
         osMutexId_t dataMutex_ {};
 
-        // FreeRTOS task
         bool isTaskRunning_ {false};
         osThreadId_t taskHandle_ {nullptr};
 
+        std::atomic<uint32_t> rxEventCount_ {};
+        uint16_t totalBytesReceived_ {};
+
         static void taskTrampoline(void *arg);
         void taskLoop();
-
-        /**
-         * @brief Walk newly received DMA bytes into the NMEA line accumulator.
-         * @param newEnd Current DMA write position in rxBuf_.
-         */
         void processBytes(uint16_t newEnd);
-
-        /**
-         * @brief Verify the NMEA checksum of the current line and dispatch to
-         *        the appropriate sentence parser.
-         */
-        void parseLine();
-
-        /**
-         * @brief Parse a GGA sentence and update lat, lon, alt, fix_qual, sats_used.
-         * @param s Null-terminated GGA sentence string.
-         * @return true if all required fields were present and parsed.
-         */
-        bool parseGGA(const char *s);
-
-        /**
-         * @brief Parse an RMC sentence and update valid, lat, lon, speed_mps,
-         *        heading_deg.
-         * @param s Null-terminated RMC sentence string.
-         * @return true if all required fields were present and parsed.
-         */
-        bool parseRMC(const char *s);
-
-        /**
-         * @brief Extract the Nth comma-separated field from an NMEA sentence.
-         * @param sentence Null-terminated NMEA sentence string.
-         * @param fieldNum 1-based field index.
-         * @param out Output buffer.
-         * @param outLen Size of the output buffer including the null terminator.
-         * @return true if a non-empty field was found, false otherwise.
-         */
-        static bool getField(const char *sentence, int fieldNum, char *out,
-                             size_t outLen);
-
-        /**
-         * @brief Convert an NMEA coordinate string to decimal degrees.
-         * @param field NMEA coordinate in DDMM.mmmm or DDDMM.mmmm format.
-         * @param degDigits Number of integer degree digits: 2 for latitude, 3 for
-         * longitude.
-         * @return Decimal degrees (always positive — apply N/S or E/W sign after).
-         */
-        static float nmeaToDecimalDeg(const char *field, int degDigits);
+        void processByte(uint8_t byte);
+        void ubxUpdateCk(uint8_t byte);
+        void resetUbxParser();
+        void dispatchUbx(uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t len);
+        bool parseNavPvt(const uint8_t *payload, uint16_t len);
+        static int32_t readI32(const uint8_t *p);
     };
 
 } // namespace hal
