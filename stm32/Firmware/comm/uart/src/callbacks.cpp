@@ -2,18 +2,19 @@
  * @file callbacks.cpp
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date May-03-2026
+ * @date Jun-13-2026
  */
 
 #include "comm/uart/callbacks.h"
 #include "comm/uart/recv.h"
 #include "comm/uart/send.h"
+#include "hal/gps.h"
 
 namespace {
     // TODO: If this does grow, put into an array
     UART_HandleTypeDef *huart1_ {nullptr};
     UART_HandleTypeDef *huart2_ {nullptr};
-    hal::GPS           *gps_    {nullptr};
+    hal::GPS *gps_ {nullptr};
 } // namespace
 
 
@@ -53,8 +54,5 @@ namespace uart::callbacks {
     }
 
 
-    void set_gps(hal::GPS *gps)
-    {
-        gps_ = gps;
-    }
+    void set_gps(hal::GPS *gps) { gps_ = gps; }
 } // namespace uart::callbacks
