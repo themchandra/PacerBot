@@ -11,14 +11,14 @@
 
 namespace {
     // TODO: If this does grow, put into an array
-    UART_HandleTypeDef *huart1_;
-    UART_HandleTypeDef *huart2_;
+    UART_HandleTypeDef *huart1_ {nullptr};
+    UART_HandleTypeDef *huart2_ {nullptr};
+    hal::GPS           *gps_    {nullptr};
 } // namespace
 
 
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    // Forward TX complete to send module for any configured UART handle
     if (huart == huart1_) {
         uart::send::handleTxComplete(huart);
     }
@@ -27,11 +27,10 @@ extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 
 extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
-    if (size) {
-    }
-
     if (huart == huart1_) {
         uart::recv::updateBufInd(size);
+    } else if (gps_ != nullptr && huart == gps_->getHuart()) {
+        gps_->onRxEvent(size);
     }
 }
 
@@ -51,5 +50,11 @@ namespace uart::callbacks {
         default:
             break;
         }
+    }
+
+
+    void set_gps(hal::GPS *gps)
+    {
+        gps_ = gps;
     }
 } // namespace uart::callbacks
