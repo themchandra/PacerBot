@@ -2,7 +2,7 @@
  * @file pid_controller.cpp
  * @brief PID controller implementation (float)
  * @author Hayden Mai
- * @date May-14-2026
+ * @date Jun-14-2026
  */
 
 #include "app/pid_controller.h"
@@ -137,11 +137,13 @@ namespace app {
     }
 
 
-    float PIDController::update(float measurement, float dt)
+    float PIDController::update(float measurement, uint32_t dt_ms)
     {
-        if (!isFinite(measurement) || !isFinite(dt) || dt <= 0.0f) {
+        if (!isFinite(measurement) || dt_ms == 0U) {
             return last_output_;
         }
+
+        const float dt_s = static_cast<float>(dt_ms) * 0.001f;
 
         // error = setpoint - measurement
         // (positive error means measurement is below target)
@@ -149,7 +151,7 @@ namespace app {
 
         // Integrate error: integral += error * dt
         // Clamp to configured integral limits to prevent windup
-        integral_ = clampValue(integral_ + (error * dt), min_integral_, max_integral_);
+        integral_ = clampValue(integral_ + (error * dt_s), min_integral_, max_integral_);
 
         float rawDerivative = 0.0f;
         if (has_prev_measurement_) {
@@ -157,11 +159,11 @@ namespace app {
             // (measurement - prev_measurement)/dt. To produce the same sign
             // convention as d(error)/dt we negate the measurement derivative
             // so that an increasing measurement reduces the output when Kd>0.
-            rawDerivative = -(measurement - prev_measurement_) / dt;
+            rawDerivative = -(measurement - prev_measurement_) / dt_s;
         }
 
         if (derivative_filter_tau_ > 0.0f) {
-            const float alpha = dt / (derivative_filter_tau_ + dt);
+            const float alpha = dt_s / (derivative_filter_tau_ + dt_s);
             // First-order low-pass filter on derivative:
             // derivative = derivative + alpha * (raw - derivative)
             // where alpha = dt / (tau + dt)

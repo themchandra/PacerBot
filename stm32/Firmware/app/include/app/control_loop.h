@@ -50,11 +50,7 @@ namespace app {
 
 
       private:
-        // Speed test profile: hold target for 5 s, then coast to stop.
-        static constexpr float SPEED_TEST_SETPOINT_MPS {1.0f};
-        static constexpr uint32_t SPEED_TEST_DURATION_MS {5000U};
-
-        static constexpr uint32_t CONTROL_PERIOD_MS {1000};
+        static constexpr uint32_t CONTROL_PERIOD_MS {100};
 
         // PID gains (tune these constants as needed)
         static constexpr float KP_SPEED {0.05f};

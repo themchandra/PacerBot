@@ -8,6 +8,7 @@
 #ifndef APP_PID_CONTROLLER_H_
 #define APP_PID_CONTROLLER_H_
 
+#include <cstdint>
 #include <limits>
 
 namespace app {
@@ -16,8 +17,8 @@ namespace app {
      * @brief Simple PID controller with anti-windup and derivative filtering.
      *
      * Usage: configure gains and optional limits, call `set_setpoint()` and
-     * then repeatedly call `update(measurement, dt)` to obtain the control
-     * output. `dt` is elapsed time in seconds.
+     * then repeatedly call `update(measurement, dt_ms)` to obtain the control
+     * output. `dt_ms` is elapsed time in milliseconds.
      */
     class PIDController {
       public:
@@ -143,9 +144,9 @@ namespace app {
 
         /**
          * @brief Main update function. Compute control action from the current
-         *        `measurement` and elapsed time `dt` (seconds).
+         *        `measurement` and elapsed time `dt_ms`.
          * @param measurement Current sensor measurement.
-         * @param dt Elapsed time in seconds since last update.
+         * @param dt_ms Elapsed time in milliseconds since last update.
          * @note Derivative is computed from the measurement (d(measurement)/dt)
          *       and negated so that an increasing measurement reduces the output
          *       when `Kd` is positive. This prevents derivative "kick" on
@@ -153,7 +154,7 @@ namespace app {
          *       d(error)/dt when the setpoint is constant.
          * @return Clamped control output.
          */
-        float update(float measurement, float dt);
+        float update(float measurement, uint32_t dt_ms);
 
       private:
         // Gain variables

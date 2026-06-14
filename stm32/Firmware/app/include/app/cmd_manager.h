@@ -2,7 +2,7 @@
  * @file cmd_manager.h
  * @brief Handles incoming packets from UART module
  * @author Hayden Mai
- * @date May-14-2026
+ * @date Jun-14-2026
  */
 
 #ifndef APP_CMD_MANAGER_H_
@@ -47,8 +47,8 @@ namespace app {
         bool get_target_speed(float &target_speed_out);
 
         /**
-         * @brief Fetch latest unread line-position command.
-         * @param line_pos_out Output line position value.
+         * @brief Fetch latest unread lines position telemetry.
+         * @param line_pos_out Output current position value.
          * @return true if new value is available, false otherwise.
          */
         bool get_line_pos(float &line_pos_out);
