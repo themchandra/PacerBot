@@ -2,16 +2,16 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date May-15-2026
+ * @date Jun-13-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
 #define APP_CTRL_LOOP_H_
 
 #include "app/cmd_manager.h"
-#include "app/imu_task.h"
 #include "app/pid_controller.h"
 #include "hal/esc.h"
+#include "hal/gps.h"
 #include "hal/servo.h"
 
 #include "cmsis_os.h"
@@ -29,10 +29,10 @@ namespace app {
         /**
          * @brief Construct a control loop and initialize output peripherals.
          * @param timer Timer handle used by both ESC and servo PWM outputs.
-         * @param imu_task IMU task used to fetch latest inertial measurements.
+         * @param gps GPS module used to fetch ground speed in m/s.
          * @param cmd_manager Command manager used to fetch latest command values.
          */
-        ControlLoop(TIM_HandleTypeDef *timer, IMUTask &imu_task, CMDManager &cmd_manager);
+        ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps, CMDManager &cmd_manager);
 
         /**
          * @brief Start the control loop task.
@@ -50,12 +50,11 @@ namespace app {
 
 
       private:
-        // Temporary test target for IMU-driven speed control.
+        // Speed test profile: hold target for 5 s, then coast to stop.
         static constexpr float SPEED_TEST_SETPOINT_MPS {1.0f};
+        static constexpr uint32_t SPEED_TEST_DURATION_MS {5000U};
 
-        // Control loop timing and IMU conversion constants.
         static constexpr uint32_t CONTROL_PERIOD_MS {1000};
-        static constexpr float GRAVITY_MPS2 {9.80665f};
 
         // PID gains (tune these constants as needed)
         static constexpr float KP_SPEED {0.05f};
@@ -76,7 +75,7 @@ namespace app {
         hal::ESC esc_;
         hal::Servo servo_;
 
-        IMUTask &imu_task_;
+        hal::GPS &gps_;
         CMDManager &cmd_manager_;
 
         static constexpr uint32_t STACK_SIZE_BYTES {1024};

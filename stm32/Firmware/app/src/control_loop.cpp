@@ -14,13 +14,12 @@
 
 namespace app {
 
-    ControlLoop::ControlLoop(TIM_HandleTypeDef *timer, IMUTask &imu_task,
+    ControlLoop::ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps,
                              CMDManager &cmd_manager)
-        : imu_task_(imu_task), cmd_manager_(cmd_manager)
+        : gps_(gps), cmd_manager_(cmd_manager)
     {
         esc_.init(timer);
         servo_.init(timer);
-        pid_speed_.set_setpoint(SPEED_TEST_SETPOINT_MPS);
         pid_lines_.set_setpoint(0.0f);
 
         // Apply configured PID gains
@@ -81,9 +80,7 @@ namespace app {
 
         // Start timing from the first loop iteration so PID dt matches reality.
         uint32_t last_tick_ms {HAL_GetTick()};
-
-        // Single IMU data buffer reused across iterations to avoid stack churn.
-        IMU::Data imu_data {};
+        uint32_t test_elapsed_ms {0U};
 
         while (isRunning_) {
             // Measure the actual elapsed time for this cycle.
@@ -98,28 +95,47 @@ namespace app {
             // Convert elapsed time to seconds for the PID update.
             const float control_dt_sec = static_cast<float>(elapsed_ms) * 0.001f;
 
-            std::printf("[ctrl] dt=%.3f s tick=%lu\n", control_dt_sec,
-                        static_cast<unsigned long>(current_tick_ms));
-
             // Refresh the line command, otherwise reuse the previous one.
             float line_pos_cmd = 0.0f;
             if (cmd_manager_.get_line_pos(line_pos_cmd)) {
                 line_position = line_pos_cmd;
             }
 
-            // Refresh the IMU speed measurement when available. 
-            if (imu_task_.get_data(imu_data)) {
-                std::printf("[imu ] ax=%.3f ay=%.3f az=%.3f gx=%.3f gy=%.3f gz=%.3f "
-                            "vx=%.3f vy=%.3f\n",
-                            imu_data.imu.accel_g[0], imu_data.imu.accel_g[1],
-                            imu_data.imu.accel_g[2], imu_data.imu.gyro_dps[0],
-                            imu_data.imu.gyro_dps[1], imu_data.imu.gyro_dps[2],
-                            imu_data.velocity_x_mps, imu_data.velocity_y_mps);
-                speed_measurement = imu_data.speed_mps;
+            const hal::GPS::Data gps_data = gps_.getData();
+            const bool has_fix = gps_data.valid;
+
+            if (has_fix) {
+                test_elapsed_ms += elapsed_ms;
+                speed_measurement = gps_data.speed_mps;
             }
 
-            std::printf("[vel ] vx=%.3f vy=%.3f speed=%.3f\n", imu_data.velocity_x_mps,
-                        imu_data.velocity_y_mps, speed_measurement);
+            std::printf("[gps ] speed=%.3f m/s valid=%d sats=%u fix=%u\n",
+                        gps_data.speed_mps, static_cast<int>(gps_data.valid),
+                        static_cast<unsigned>(gps_data.sats_used),
+                        static_cast<unsigned>(gps_data.fix_qual));
+            std::printf("[vel ] speed=%.3f m/s\n", speed_measurement);
+
+            if (!has_fix) {
+                pid_speed_.reset();
+                pid_lines_.reset();
+                esc_.set_pulse_us(hal::ESC::NEUTRAL_US);
+                servo_.set_pulse_us(hal::Servo::CENTER_US);
+
+                std::printf("[ctrl] waiting for GPS fix — esc/servo neutral\n");
+                osDelay(CONTROL_PERIOD_MS);
+                continue;
+            }
+
+            const float speed_setpoint = (test_elapsed_ms < SPEED_TEST_DURATION_MS)
+                                           ? SPEED_TEST_SETPOINT_MPS
+                                           : 0.0f;
+            pid_speed_.set_setpoint(speed_setpoint);
+
+            std::printf(
+                "[ctrl] dt=%.3f s tick=%lu setpoint=%.3f m/s phase=%s test_elapsed=%lu ms\n",
+                control_dt_sec, static_cast<unsigned long>(current_tick_ms), speed_setpoint,
+                (test_elapsed_ms < SPEED_TEST_DURATION_MS) ? "run" : "stop",
+                static_cast<unsigned long>(test_elapsed_ms));
 
             // Run both PIDs with the current inputs.
             const float speed_output

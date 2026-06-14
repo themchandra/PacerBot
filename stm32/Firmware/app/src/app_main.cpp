@@ -8,8 +8,9 @@
 #include "app/app_main.h"
 #include "app/cmd_manager.h"
 #include "app/control_loop.h"
-#include "app/imu_task.h"
+#include "comm/uart/callbacks.h"
 #include "comm/uart/manager.h"
+#include "hal/gps.h"
 
 #include "cmsis_os.h"
 #include "main.h"
@@ -20,16 +21,13 @@
 // NOTE: Only pass them as reference through initialization for modules/classes,
 // 		 save them as a pointer for use.
 extern "C" {
-extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart6;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern TIM_HandleTypeDef htim3;
 }
-
-// IMU I2C device address
-constexpr int IMU_ADDRESS = 0x68;
 
 extern "C" void app_main(void)
 {
@@ -41,12 +39,12 @@ extern "C" void app_main(void)
     app::CMDManager cmd_manager;
     cmd_manager.start();
 
-    // Create and start IMU task
-    app::IMUTask imu_task(&hi2c1, IMU_ADDRESS);
-    imu_task.start();
+    hal::GPS gps(&huart6);
+    uart::callbacks::set_gps(&gps);
+    gps.start();
 
     // Create and start control loop
-    app::ControlLoop control_loop(&htim3, imu_task, cmd_manager);
+    app::ControlLoop control_loop(&htim3, gps, cmd_manager);
     control_loop.start();
 
     // Main idle loop - flash LED briefly every 5 seconds
