@@ -6,7 +6,7 @@ file(GLOB MY_SOURCES "src/*.cpp")
 add_library(comm_uart STATIC ${MY_SOURCES})
 
 # Make use of the STM32 library
-target_link_libraries(comm_uart PRIVATE stm32cubemx)
+target_link_libraries(comm_uart PRIVATE stm32cubemx hal)
 
 # Expose its local include directory for "comm/uart/*.h"
 target_include_directories(comm_uart PUBLIC include)

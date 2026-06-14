@@ -2,7 +2,7 @@
  * @file callbacks.h
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Dec-13-2025
+ * @date Jun-13-2026
  */
 
 #ifndef UART_CALLBACKS_H_
@@ -10,13 +10,24 @@
 
 #include "comm/uart/manager.h"
 
+// Forward declaration — full definition only needed in callbacks.cpp
+namespace hal {
+    class GPS;
+}
+
 namespace uart::callbacks {
     /**
-     * @brief Assign UART ports for callbacks to compare
+     * @brief Assign UART ports for callbacks to compare.
      * @param huart Pointer of UART initialized by main.c
      * @param instance Enum corresponding to the UART port
      */
     void set_huart(UART_HandleTypeDef *huart, manager::eUARTInstance instance);
+
+    /**
+     * @brief Register the GPS instance to receive RX events.
+     * @param gps Pointer to the GPS instance whose UART is on USART6.
+     */
+    void set_gps(hal::GPS *gps);
 
 } // namespace uart::callbacks
 
