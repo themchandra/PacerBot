@@ -2,21 +2,14 @@
  * @file gps.cpp
  * @brief GPS class implementation — async DMA u-blox UBX parsing on a single UART
  * @author Hayden Mai
- * @date Jun-13-2026
+ * @date Jun-14-2026
  */
 
 #include "hal/gps.h"
 
 #include "stm32f4xx_hal.h"
 
-#include <cstdio>
-
 namespace hal {
-
-    namespace {
-        constexpr bool kGpsDebug {false};
-        constexpr uint32_t kIdleReportMs {2000};
-    } // namespace
 
     GPS::GPS(UART_HandleTypeDef *huart) : huart_(huart)
     {
@@ -31,12 +24,9 @@ namespace hal {
         resetUbxParser();
 
         isTaskRunning_ = true;
-        taskHandle_    = osThreadNew(taskTrampoline, this, &kTaskAttr);
+        taskHandle_    = osThreadNew(taskTrampoline, this, &task_attr_);
         if (taskHandle_ == nullptr) {
             isTaskRunning_ = false;
-            if (kGpsDebug) {
-                std::printf("GPS: failed to create parse task\n\r");
-            }
             return;
         }
 
@@ -46,20 +36,7 @@ namespace hal {
             isTaskRunning_ = false;
             osThreadTerminate(taskHandle_);
             taskHandle_ = nullptr;
-            if (kGpsDebug) {
-                std::printf("GPS: DMA start failed (status=%d)\n\r",
-                            static_cast<int>(status));
-            }
             return;
-        }
-
-        if (kGpsDebug) {
-            std::printf("GPS: UBX parser started on USART%lu @ %lu baud\n\r",
-                        static_cast<unsigned long>((huart_->Instance == USART6)   ? 6
-                                                   : (huart_->Instance == USART2) ? 2
-                                                   : (huart_->Instance == USART1) ? 1
-                                                                                  : 0),
-                        static_cast<unsigned long>(huart_->Init.BaudRate));
         }
     }
 
@@ -79,7 +56,6 @@ namespace hal {
     void GPS::onRxEvent(uint16_t size)
     {
         dmaIdx_ = size;
-        rxEventCount_.fetch_add(1, std::memory_order_relaxed);
         osThreadFlagsSet(taskHandle_, FLAGS_VALUE);
     }
 
@@ -98,8 +74,6 @@ namespace hal {
 
     void GPS::taskLoop()
     {
-        uint32_t lastActivityMs = osKernelGetTickCount();
-
         while (isTaskRunning_) {
             const uint32_t flags
                 = osThreadFlagsWait(FLAGS_VALUE, osFlagsWaitAny, FLAG_TIMEOUT_MS);
@@ -110,22 +84,7 @@ namespace hal {
                 }
             }
 
-            const uint16_t prevTotalBytes = totalBytesReceived_;
             processBytes(dmaIdx_);
-
-            if (totalBytesReceived_ != prevTotalBytes) {
-                lastActivityMs = osKernelGetTickCount();
-            } else if (kGpsDebug) {
-                const uint32_t now = osKernelGetTickCount();
-                if ((now - lastActivityMs) >= kIdleReportMs) {
-                    std::printf("GPS: idle — rxEvents=%lu, totalBytes=%u, dmaIdx=%u\n\r",
-                                static_cast<unsigned long>(
-                                    rxEventCount_.load(std::memory_order_relaxed)),
-                                static_cast<unsigned>(totalBytesReceived_),
-                                static_cast<unsigned>(dmaIdx_));
-                    lastActivityMs = now;
-                }
-            }
         }
     }
 
@@ -142,8 +101,6 @@ namespace hal {
         if (available == 0) {
             return;
         }
-
-        totalBytesReceived_ += available;
 
         if (available > RX_BUF_SIZE) {
             curIdx_ = newEnd;
@@ -258,11 +215,30 @@ namespace hal {
     }
 
 
-    int32_t GPS::readI32(const uint8_t *p)
+    int32_t GPS::read_int32(const uint8_t *p)
     {
         return static_cast<int32_t>(
             static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8)
             | (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24));
+    }
+
+
+    uint32_t GPS::read_uint32(const uint8_t *p)
+    {
+        return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8)
+             | (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
+    }
+
+
+    uint16_t GPS::read_uint16(const uint8_t *p)
+    {
+        return static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8);
+    }
+
+
+    int16_t GPS::read_int16(const uint8_t *p)
+    {
+        return static_cast<int16_t>(read_uint16(p));
     }
 
 
@@ -272,34 +248,68 @@ namespace hal {
             return false;
         }
 
-        const uint8_t fixType = payload[20];
-        const uint8_t flags   = payload[21];
-        const uint8_t numSv   = payload[23];
-        const int32_t lon     = readI32(payload + 24);
-        const int32_t lat     = readI32(payload + 28);
-        const int32_t hMsl    = readI32(payload + 36);
-        const int32_t gSpeed  = readI32(payload + 60);
-        const int32_t headMot = readI32(payload + 64);
+        const uint32_t itow    = read_uint32(payload + 0);
+        const uint16_t year    = read_uint16(payload + 4);
+        const uint8_t fixType  = payload[20];
+        const uint8_t flags    = payload[21];
+        const uint8_t flags2   = payload[22];
+        const uint8_t numSv    = payload[23];
+        const int32_t lon      = read_int32(payload + 24);
+        const int32_t lat      = read_int32(payload + 28);
+        const int32_t height   = read_int32(payload + 32);
+        const int32_t hMsl     = read_int32(payload + 36);
+        const uint32_t hAcc    = read_uint32(payload + 40);
+        const uint32_t vAcc    = read_uint32(payload + 44);
+        const int32_t velN     = read_int32(payload + 48);
+        const int32_t velE     = read_int32(payload + 52);
+        const int32_t velD     = read_int32(payload + 56);
+        const int32_t gSpeed   = read_int32(payload + 60);
+        const int32_t headMot  = read_int32(payload + 64);
+        const uint32_t sAcc    = read_uint32(payload + 68);
+        const uint32_t headAcc = read_uint32(payload + 72);
+        const uint16_t pDop    = read_uint16(payload + 76);
+        const uint8_t flags3   = payload[78];
+        const int32_t headVeh  = read_int32(payload + 86);
+        const int16_t magDec   = read_int16(payload + 90);
+        const uint16_t magAcc  = (len >= 94U) ? read_uint16(payload + 92) : 0U;
 
         const bool valid = (fixType >= 2) && ((flags & 0x01U) != 0U);
 
         osMutexAcquire(dataMutex_, osWaitForever);
-        data_.lat_deg     = static_cast<float>(lat) * 1.0e-7f;
-        data_.lon_deg     = static_cast<float>(lon) * 1.0e-7f;
-        data_.alt_m       = static_cast<float>(hMsl) / 1000.0f;
-        data_.speed_mps   = static_cast<float>(gSpeed) / 1000.0f;
-        data_.heading_deg = static_cast<float>(headMot) * 1.0e-5f;
-        data_.sats_used   = numSv;
-        data_.fix_qual    = fixType;
-        data_.valid       = valid;
+        data_.itow_ms        = itow;
+        data_.year           = year;
+        data_.month          = payload[6];
+        data_.day            = payload[7];
+        data_.hour           = payload[8];
+        data_.min            = payload[9];
+        data_.sec            = payload[10];
+        data_.datetime_valid = payload[11];
+        data_.t_acc_ns       = read_uint32(payload + 12);
+        data_.nano_ns        = read_int32(payload + 16);
+        data_.fix_qual       = fixType;
+        data_.flags          = flags;
+        data_.flags2         = flags2;
+        data_.flags3         = flags3;
+        data_.sats_used      = numSv;
+        data_.valid          = valid;
+        data_.lat_deg        = static_cast<float>(lat) * 1.0e-7f;
+        data_.lon_deg        = static_cast<float>(lon) * 1.0e-7f;
+        data_.height_m       = static_cast<float>(height) / 1000.0f;
+        data_.alt_m          = static_cast<float>(hMsl) / 1000.0f;
+        data_.h_acc_m        = static_cast<float>(hAcc) / 1000.0f;
+        data_.v_acc_m        = static_cast<float>(vAcc) / 1000.0f;
+        data_.vel_n_mps      = static_cast<float>(velN) / 1000.0f;
+        data_.vel_e_mps      = static_cast<float>(velE) / 1000.0f;
+        data_.vel_d_mps      = static_cast<float>(velD) / 1000.0f;
+        data_.speed_mps      = static_cast<float>(gSpeed) / 1000.0f;
+        data_.heading_deg    = static_cast<float>(headMot) * 1.0e-5f;
+        data_.s_acc_mps      = static_cast<float>(sAcc) / 1000.0f;
+        data_.head_acc_deg   = static_cast<float>(headAcc) * 1.0e-5f;
+        data_.p_dop          = static_cast<float>(pDop) * 0.01f;
+        data_.head_veh_deg   = static_cast<float>(headVeh) * 1.0e-5f;
+        data_.mag_dec_deg    = static_cast<float>(magDec) * 0.01f;
+        data_.mag_acc_deg    = static_cast<float>(magAcc) * 0.01f;
         osMutexRelease(dataMutex_);
-
-        if (kGpsDebug) {
-            std::printf("GPS: NAV-PVT fix=%u sats=%u valid=%d lat=%.6f lon=%.6f\r\n",
-                        static_cast<unsigned>(fixType), static_cast<unsigned>(numSv),
-                        static_cast<int>(valid), static_cast<double>(data_.lat_deg),
-                        static_cast<double>(data_.lon_deg));
-        }
 
         return true;
     }

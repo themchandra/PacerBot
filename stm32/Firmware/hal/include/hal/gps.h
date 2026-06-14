@@ -2,7 +2,7 @@
  * @file gps.h
  * @brief GPS class for async DMA u-blox UBX parsing
  * @author Hayden Mai
- * @date Jun-13-2026
+ * @date Jun-14-2026
  */
 
 #ifndef HAL_GPS_H_
@@ -11,7 +11,6 @@
 #include "cmsis_os.h"
 #include "main.h"
 
-#include <atomic>
 #include <cstdint>
 
 namespace hal {
@@ -19,14 +18,48 @@ namespace hal {
     class GPS {
       public:
         struct Data {
+            // Time
+            uint32_t itow_ms {};
+            uint16_t year {};
+            uint8_t month {};
+            uint8_t day {};
+            uint8_t hour {};
+            uint8_t min {};
+            uint8_t sec {};
+            uint8_t datetime_valid {};
+            uint32_t t_acc_ns {};
+            int32_t nano_ns {};
+
+            // Fix / flags
+            uint8_t fix_qual {};
+            uint8_t flags {};
+            uint8_t flags2 {};
+            uint8_t flags3 {};
+            uint8_t sats_used {};
+            bool valid {};
+
+            // Position
             float lat_deg {};
             float lon_deg {};
+            float height_m {};
             float alt_m {};
+            float h_acc_m {};
+            float v_acc_m {};
+
+            // Velocity
+            float vel_n_mps {};
+            float vel_e_mps {};
+            float vel_d_mps {};
             float speed_mps {};
             float heading_deg {};
-            uint8_t sats_used {};
-            uint8_t fix_qual {};
-            bool valid {};
+            float s_acc_mps {};
+            float head_acc_deg {};
+            float p_dop {};
+
+            // Vehicle / magnetic
+            float head_veh_deg {};
+            float mag_dec_deg {};
+            float mag_acc_deg {};
         };
 
         explicit GPS(UART_HandleTypeDef *huart);
@@ -68,6 +101,7 @@ namespace hal {
       private:
         static constexpr uint16_t RX_BUF_SIZE {512};
         static constexpr uint16_t UBX_MAX_PAYLOAD {256};
+
         static constexpr uint32_t STACK_BYTES {2048};
         static constexpr uint32_t FLAGS_VALUE {0x01};
         static constexpr uint32_t FLAG_TIMEOUT_MS {10};
@@ -90,7 +124,7 @@ namespace hal {
             CkB,
         };
 
-        static constexpr osThreadAttr_t kTaskAttr {
+        static constexpr osThreadAttr_t task_attr_ {
             .name       = "gpsTask",
             .attr_bits  = 0,
             .cb_mem     = nullptr,
@@ -123,9 +157,6 @@ namespace hal {
         bool isTaskRunning_ {false};
         osThreadId_t taskHandle_ {nullptr};
 
-        std::atomic<uint32_t> rxEventCount_ {};
-        uint16_t totalBytesReceived_ {};
-
         static void taskTrampoline(void *arg);
         void taskLoop();
         void processBytes(uint16_t newEnd);
@@ -134,7 +165,10 @@ namespace hal {
         void resetUbxParser();
         void dispatchUbx(uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t len);
         bool parseNavPvt(const uint8_t *payload, uint16_t len);
-        static int32_t readI32(const uint8_t *p);
+        static int32_t read_int32(const uint8_t *p);
+        static uint32_t read_uint32(const uint8_t *p);
+        static uint16_t read_uint16(const uint8_t *p);
+        static int16_t read_int16(const uint8_t *p);
     };
 
 } // namespace hal
