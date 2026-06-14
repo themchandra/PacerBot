@@ -2,7 +2,7 @@
  * @file imu_task.cpp
  * @brief IMU sampling task for control loop consumption.
  * @author Hayden Mai
- * @date May-15-2026
+ * @date Jun-14-2026
  */
 
 #include "app/imu_task.h"
@@ -136,4 +136,3 @@ namespace app {
     }
 
 } // namespace app
-    

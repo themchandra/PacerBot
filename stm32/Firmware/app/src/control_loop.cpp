@@ -26,12 +26,15 @@ namespace app {
         pid_speed_.set_gains(KP_SPEED, KI_SPEED, KD_SPEED);
         pid_lines_.set_gains(KP_LINE, KI_LINE, KD_LINE);
 
-        // Keep controller outputs normalized; actuator mapping happens later.
+        // Keep controller outputs normalized to [-1.0, 1.0]
+        // Actuator mapping happens in normalizedToPulse().
         pid_speed_.set_output_limits(PID_OUTPUT_MIN, PID_OUTPUT_MAX);
-        pid_speed_.set_integral_limits(PID_OUTPUT_MIN, PID_OUTPUT_MAX);
+        pid_speed_.set_integral_limits(-calculateIntegralLimits(KI_SPEED),
+                                       calculateIntegralLimits(KI_SPEED));
 
         pid_lines_.set_output_limits(PID_OUTPUT_MIN, PID_OUTPUT_MAX);
-        pid_lines_.set_integral_limits(PID_OUTPUT_MIN, PID_OUTPUT_MAX);
+        pid_lines_.set_integral_limits(-calculateIntegralLimits(KI_LINE),
+                                       calculateIntegralLimits(KI_LINE));
     }
 
 
@@ -77,12 +80,12 @@ namespace app {
         float speed_setpoint {0.0f};
         float line_position {0.0f};
 
-        uint32_t last_tick_ms {HAL_GetTick()};
+        uint32_t prev_tick_ms {HAL_GetTick()};
 
         while (isRunning_) {
-            const uint32_t current_tick_ms {HAL_GetTick()};
-            uint32_t elapsed_ms {current_tick_ms - last_tick_ms};
-            last_tick_ms = current_tick_ms;
+            const uint32_t cur_tick_ms {HAL_GetTick()};
+            uint32_t elapsed_ms {cur_tick_ms - prev_tick_ms};
+            prev_tick_ms = cur_tick_ms;
 
             if (elapsed_ms == 0U) {
                 elapsed_ms = 1U;
@@ -110,6 +113,16 @@ namespace app {
 
             osDelay(CONTROL_PERIOD_MS);
         }
+    }
+
+
+    float ControlLoop::calculateIntegralLimits(float ki)
+    {
+        if (ki == 0.0f) {
+            return PID_OUTPUT_MAX;
+        }
+
+        return PID_OUTPUT_MAX / std::fabs(ki);
     }
 
 

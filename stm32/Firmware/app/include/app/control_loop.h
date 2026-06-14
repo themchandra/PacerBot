@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jun-13-2026
+ * @date Jun-14-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -100,6 +100,15 @@ namespace app {
          * @brief Main periodic loop body for control updates.
          */
         void threadLoop();
+
+        /**
+         * @brief Compute integral clamp limits from Ki so Ki*integral can reach full
+         * output.
+         * @param ki Integral gain; returns ±PID_OUTPUT_MAX when ki is zero (I-term
+         * unused).
+         * @return Magnitude of symmetric integral limits (apply as ±return value).
+         */
+        static float calculateIntegralLimits(float ki);
 
         /**
          * @brief Convert a normalized PID output into an actuator pulse width.
