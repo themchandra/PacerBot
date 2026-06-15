@@ -2,14 +2,15 @@
  * @file cmd_manager.h
  * @brief Handles incoming packets from UART module
  * @author Hayden Mai
- * @date Jun-14-2026
+ * @date Jun-15-2026
  */
 
 #ifndef APP_CMD_MANAGER_H_
 #define APP_CMD_MANAGER_H_
 
-#include "cmsis_os.h"
 #include "comm/uart/packet_info.h"
+
+#include "cmsis_os.h"
 
 #include <cstdint>
 

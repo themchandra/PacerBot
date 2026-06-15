@@ -2,7 +2,7 @@
  * @file gps.h
  * @brief GPS class for async DMA u-blox UBX parsing
  * @author Hayden Mai
- * @date Jun-14-2026
+ * @date Jun-15-2026
  */
 
 #ifndef HAL_GPS_H_

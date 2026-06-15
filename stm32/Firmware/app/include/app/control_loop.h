@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jun-14-2026
+ * @date Jun-15-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -10,6 +10,7 @@
 
 #include "app/cmd_manager.h"
 #include "app/pid_controller.h"
+
 #include "hal/esc.h"
 #include "hal/gps.h"
 #include "hal/servo.h"

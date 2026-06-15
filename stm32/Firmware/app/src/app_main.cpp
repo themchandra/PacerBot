@@ -2,14 +2,16 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Jun-13-2026
+ * @date Jun-15-2026
  */
 
 #include "app/app_main.h"
 #include "app/cmd_manager.h"
 #include "app/control_loop.h"
+
 #include "comm/uart/callbacks.h"
 #include "comm/uart/manager.h"
+
 #include "hal/gps.h"
 
 #include "cmsis_os.h"
@@ -31,24 +33,31 @@ extern TIM_HandleTypeDef htim3;
 
 extern "C" void app_main(void)
 {
-    // Initialize UART for command reception
+    // Peripherals & Hardware sensors
     uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
-    uart::manager::start();
-
-    // Create and start command manager
-    app::CMDManager cmd_manager;
-    cmd_manager.start();
-
     hal::GPS gps(&huart6);
     uart::callbacks::set_gps(&gps);
-    gps.start();
 
-    // Create and start control loop
+    // App layer inits
+    app::CMDManager cmd_manager;
     app::ControlLoop control_loop(&htim3, gps, cmd_manager);
+
+    // Start tasks loops
+    gps.start();
+    uart::manager::start();
+    cmd_manager.start();
+
+    // Wait for a 3D satellite fix before starting the control loop
+    hal::GPS::Data gps_data = gps.getData();
+    while (!gps_data.valid || gps_data.fix_qual < 3) {
+        osDelay(1000);
+        gps_data = gps.getData();
+    }
     control_loop.start();
 
-    // Main idle loop - flash LED briefly every 5 seconds
+    // Main 'idle' loop
     while (true) {
+        // Sign-of-life LED Blinking
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
         osDelay(100);
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
