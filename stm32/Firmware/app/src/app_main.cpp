@@ -22,6 +22,7 @@
 // External global variables from Core/Src/main.c
 // NOTE: Only pass them as reference through initialization for modules/classes,
 // 		 save them as a pointer for use.
+//       DO NOT use 'extern' anywhere else outside of this file!!
 extern "C" {
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
@@ -39,8 +40,8 @@ extern "C" void app_main(void)
     uart::callbacks::set_gps(&gps);
 
     // App layer inits
-    app::CMDManager cmd_manager;
-    app::ControlLoop control_loop(&htim3, gps, cmd_manager);
+    app::ControlLoop control_loop(&htim3, gps);
+    app::CMDManager cmd_manager(control_loop);
 
     // Start tasks loops
     gps.start();

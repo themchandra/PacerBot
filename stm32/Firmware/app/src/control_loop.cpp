@@ -2,7 +2,7 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date Jun-14-2026
+ * @date Jun-16-2026
  */
 
 #include "app/control_loop.h"
@@ -13,14 +13,14 @@
 
 namespace app {
 
-    ControlLoop::ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps,
-                             CMDManager &cmd_manager)
-        : gps_(gps), cmd_manager_(cmd_manager)
+    ControlLoop::ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps) : gps_(gps)
     {
+        mutex_ = osMutexNew(nullptr);
+
         esc_.init(timer);
         servo_.init(timer);
-        pid_speed_.set_setpoint(0.0f);
-        pid_lines_.set_setpoint(0.0f);
+        pid_speed_.set_setpoint(target_speed_mps_);
+        pid_lines_.set_setpoint(TARGET_POSITION);
 
         // Apply configured PID gains
         pid_speed_.set_gains(KP_SPEED, KI_SPEED, KD_SPEED);
@@ -61,10 +61,34 @@ namespace app {
             taskHandle_ = nullptr;
         }
 
+        osMutexAcquire(mutex_, osWaitForever);
         pid_speed_.reset();
         pid_lines_.reset();
+        measured_line_position_ = 0.0f;
+        target_speed_mps_       = 0.0f;
+        osMutexRelease(mutex_);
+
         esc_.set_pulse_us(hal::ESC::NEUTRAL_US);
         servo_.set_pulse_us(hal::Servo::CENTER_US);
+    }
+
+
+    void ControlLoop::set_target_speed(float speed_mps)
+    {
+        osMutexAcquire(mutex_, osWaitForever);
+        if (target_speed_mps_ <= TARGET_SPEED_MIN_MPS
+            || target_speed_mps_ >= TARGET_SPEED_MAX_MPS) {
+            target_speed_mps_ = speed_mps;
+        }
+        osMutexRelease(mutex_);
+    }
+
+
+    void ControlLoop::set_measured_line_position(float position)
+    {
+        osMutexAcquire(mutex_, osWaitForever);
+        measured_line_position_ = position;
+        osMutexRelease(mutex_);
     }
 
 
@@ -77,9 +101,6 @@ namespace app {
 
     void ControlLoop::threadLoop()
     {
-        float speed_setpoint {0.0f};
-        float line_position {0.0f};
-
         uint32_t prev_tick_ms {HAL_GetTick()};
 
         while (isRunning_) {
@@ -91,16 +112,20 @@ namespace app {
                 elapsed_ms = 1U;
             }
 
-            // Get & Set target speed
-            if (cmd_manager_.get_target_speed(speed_setpoint)) {
-                pid_speed_.set_setpoint(speed_setpoint);
+            const hal::GPS::Data gps_data = gps_.getData();
+
+            osMutexAcquire(mutex_, osWaitForever);
+            const float measured_line_position = measured_line_position_;
+            const float target_speed           = target_speed_mps_;
+            osMutexRelease(mutex_);
+
+            if (pid_speed_.get_setpoint() != target_speed) {
+                pid_speed_.set_setpoint(target_speed);
             }
 
-            const hal::GPS::Data gps_data = gps_.getData();
-            cmd_manager_.get_line_pos(line_position);
-
             const float speed_output = pid_speed_.update(gps_data.speed_mps, elapsed_ms);
-            const float line_output  = pid_lines_.update(line_position, elapsed_ms);
+            const float line_output
+                = pid_lines_.update(measured_line_position, elapsed_ms);
 
             // Set PID outputs to actuators
             const auto esc_us = normalizedToPulse(speed_output, hal::ESC::NEUTRAL_US,

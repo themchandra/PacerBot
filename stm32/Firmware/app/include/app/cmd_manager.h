@@ -15,19 +15,23 @@
 #include <cstdint>
 
 namespace app {
+
+    class ControlLoop;
+
     /**
      * @class CMDManager
-     * @brief Consumes UART command packets and exposes latest command values.
+     * @brief Consumes UART command packets and forwards them to ControlLoop.
      *
-     * The task dequeues validated packets from `uart::recv` and extracts float
-     * payload values for target speed and line position commands.
+     * The task dequeues validated packets from `uart::recv` and dispatches float
+     * payload values to the corresponding ControlLoop PID inputs.
      */
     class CMDManager {
       public:
         /**
-         * @brief Construct command manager with cleared command state.
+         * @brief Construct command manager bound to a control loop instance.
+         * @param control_loop Control loop that receives parsed command values.
          */
-        CMDManager() = default;
+        explicit CMDManager(ControlLoop &control_loop);
 
         /**
          * @brief Start the command-processing task.
@@ -39,20 +43,6 @@ namespace app {
          * @brief Stop command-processing task and clear unread command flags.
          */
         void stop();
-
-        /**
-         * @brief Fetch latest unread target speed command.
-         * @param target_speed_out Output speed value.
-         * @return true if new value is available, false otherwise.
-         */
-        bool get_target_speed(float &target_speed_out);
-
-        /**
-         * @brief Fetch latest unread lines position telemetry.
-         * @param line_pos_out Output current position value.
-         * @return true if new value is available, false otherwise.
-         */
-        bool get_line_pos(float &line_pos_out);
 
       private:
         static constexpr std::uint32_t STACK_SIZE_BYTES {512};
@@ -68,13 +58,10 @@ namespace app {
             .reserved   = 0,
         };
 
+        ControlLoop &control_loop_;
+
         osThreadId_t taskHandle_ {};
         volatile bool isTaskRunning_ {false};
-
-        float target_speed_ {};
-        float line_pos_ {};
-        volatile bool has_target_speed_ {false};
-        volatile bool has_line_pos_ {false};
 
         /**
          * @brief Static RTOS entrypoint that forwards to `threadLoop()`.

@@ -2,13 +2,12 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jun-15-2026
+ * @date Jun-16-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
 #define APP_CTRL_LOOP_H_
 
-#include "app/cmd_manager.h"
 #include "app/pid_controller.h"
 
 #include "hal/esc.h"
@@ -31,9 +30,8 @@ namespace app {
          * @brief Construct a control loop and initialize output peripherals.
          * @param timer Timer handle used by both ESC and servo PWM outputs.
          * @param gps GPS module used to fetch ground speed in m/s.
-         * @param cmd_manager Command manager used to fetch latest command values.
          */
-        ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps, CMDManager &cmd_manager);
+        ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps);
 
         /**
          * @brief Start the control loop task.
@@ -49,6 +47,20 @@ namespace app {
          */
         void stop();
 
+        /**
+         * @brief Update the commanded target speed used by the speed PID.
+         * @param speed_mps Target ground speed in m/s, clamped to
+         *        [TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS].
+         * @note Thread-safe; may be called from CMDManager task context.
+         */
+        void set_target_speed(float speed_mps);
+
+        /**
+         * @brief Update the measured line position used by the line PID.
+         * @param position Normalized line position from telemetry.
+         * @note Thread-safe; may be called from CMDManager task context.
+         */
+        void set_measured_line_position(float position);
 
       private:
         static constexpr uint32_t CONTROL_PERIOD_MS {100};
@@ -66,14 +78,20 @@ namespace app {
         static constexpr float PID_OUTPUT_MIN {-1.0f};
         static constexpr float PID_OUTPUT_MAX {1.0f};
 
+        // Target & bounds
+        static constexpr float TARGET_SPEED_MIN_MPS {0.0f};
+        static constexpr float TARGET_SPEED_MAX_MPS {10.0f};
+        static constexpr float TARGET_POSITION {0.0f};
+
         PIDController pid_speed_ {};
         PIDController pid_lines_ {};
 
         hal::ESC esc_;
         hal::Servo servo_;
-
         hal::GPS &gps_;
-        CMDManager &cmd_manager_;
+
+        float measured_line_position_ {};
+        float target_speed_mps_ {};
 
         static constexpr uint32_t STACK_SIZE_BYTES {1024};
         static constexpr osThreadAttr_t task_att_ {
@@ -88,6 +106,7 @@ namespace app {
             .reserved   = 0,
         };
 
+        osMutexId_t mutex_ {};
         osThreadId_t taskHandle_ {};
         volatile bool isRunning_ {false};
 
