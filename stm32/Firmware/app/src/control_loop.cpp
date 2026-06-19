@@ -2,7 +2,7 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date Jun-16-2026
+ * @date Jun-19-2026
  */
 
 #include "app/control_loop.h"
@@ -76,10 +76,8 @@ namespace app {
     void ControlLoop::set_target_speed(float speed_mps)
     {
         osMutexAcquire(mutex_, osWaitForever);
-        if (target_speed_mps_ <= TARGET_SPEED_MIN_MPS
-            || target_speed_mps_ >= TARGET_SPEED_MAX_MPS) {
-            target_speed_mps_ = speed_mps;
-        }
+        target_speed_mps_
+            = std::clamp(speed_mps, TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS);
         osMutexRelease(mutex_);
     }
 

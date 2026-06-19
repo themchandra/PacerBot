@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jun-16-2026
+ * @date Jun-19-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -67,7 +67,7 @@ namespace app {
 
         // PID gains (tune these constants as needed)
         static constexpr float KP_SPEED {0.05f};
-        static constexpr float KI_SPEED {0.0f};
+        static constexpr float KI_SPEED {0.02f};
         static constexpr float KD_SPEED {0.0f};
 
         static constexpr float KP_LINE {0.0f};
@@ -80,7 +80,7 @@ namespace app {
 
         // Target & bounds
         static constexpr float TARGET_SPEED_MIN_MPS {0.0f};
-        static constexpr float TARGET_SPEED_MAX_MPS {10.0f};
+        static constexpr float TARGET_SPEED_MAX_MPS {50.0f};
         static constexpr float TARGET_POSITION {0.0f};
 
         PIDController pid_speed_ {};

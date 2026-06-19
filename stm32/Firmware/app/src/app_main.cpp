@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Jun-15-2026
+ * @date Jun-19-2026
  */
 
 #include "app/app_main.h"
@@ -55,6 +55,12 @@ extern "C" void app_main(void)
         gps_data = gps.getData();
     }
     control_loop.start();
+
+    control_loop.set_target_speed(2.0f);
+    osDelay(15000);
+    //control_loop.set_target_speed(20.0f);
+    //osDelay(10000);
+    control_loop.set_target_speed(0.0f);
 
     // Main 'idle' loop
     while (true) {
