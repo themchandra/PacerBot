@@ -76,7 +76,7 @@ namespace app {
     void ControlLoop::set_target_speed(float speed_mps)
     {
         osMutexAcquire(mutex_, osWaitForever);
-        target_speed_mps_
+         target_speed_mps_
             = std::clamp(speed_mps, TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS);
         osMutexRelease(mutex_);
     }
