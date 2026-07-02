@@ -105,7 +105,7 @@ namespace app {
 
     void ControlLoop::threadLoop()
     {
-        // Wait for a 3D satellite fix before starting the control loop
+        // Wait for 3D fix
         hal::GPS::Data gps_data = gps_.getData();
         while (!gps_data.valid || gps_data.fix_qual < 3) {
             osDelay(1000);

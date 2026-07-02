@@ -51,8 +51,8 @@ extern "C" void app_main(void)
 
     control_loop.set_target_speed(2.0f);
     osDelay(15000);
-    //control_loop.set_target_speed(20.0f);
-    //osDelay(10000);
+    // control_loop.set_target_speed(20.0f);
+    // osDelay(10000);
     control_loop.set_target_speed(0.0f);
 
     // Main 'idle' loop

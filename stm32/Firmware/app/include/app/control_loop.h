@@ -22,20 +22,20 @@ namespace app {
      * @brief Periodic control loop task that updates steering/speed control.
      *
      * This task owns ESC and servo outputs and is intended to run at a fixed
-     * period under CMSIS-RTOS.
+     * period under CMSIS-RTOS. Owns GPS; waits for 3D fix before running.
      */
     class ControlLoop {
       public:
         /**
          * @brief Construct a control loop and initialize output peripherals.
          * @param timer Timer handle used by both ESC and servo PWM outputs.
-         * @param huart_gps UART handle for GPS readings.
+         * @param huart_gps GPS UART; registered with uart::callbacks.
          */
         ControlLoop(TIM_HandleTypeDef *timer, UART_HandleTypeDef *huart_gps);
 
         /**
          * @brief Start the control loop task.
-         * @note If the task is already running, this call does nothing.
+         * @note Also starts GPS. If the task is already running, this call does nothing.
          */
         void start();
 
@@ -93,6 +93,7 @@ namespace app {
         float measured_line_position_ {};
         float target_speed_mps_ {};
 
+
         static constexpr uint32_t STACK_SIZE_BYTES {1024};
         static constexpr osThreadAttr_t task_att_ {
             .name       = "ControlLoopTask",
@@ -118,6 +119,7 @@ namespace app {
 
         /**
          * @brief Main periodic loop body for control updates.
+         * @note Blocks until GPS has a 3D fix.
          */
         void threadLoop();
 
