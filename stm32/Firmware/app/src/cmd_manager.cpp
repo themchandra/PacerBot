@@ -2,13 +2,14 @@
  * @file cmd_manager.cpp
  * @brief Handles incoming packets from UART module
  * @author Hayden Mai
- * @date May-14-2026
+ * @date Jun-08-2026
  */
 
 #include "app/cmd_manager.h"
 
 #include "comm/uart/recv.h"
 
+#include <cstdio>
 #include <cstring>
 
 namespace app {
@@ -106,7 +107,7 @@ namespace app {
             has_line_pos_ = true;
             // Toggle on-board LED to visibly confirm packet reception
             HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-            printf("STM32 got line pos: %f\n\r", value);
+            std::printf("STM32 got line pos: %f\n\r", value);
         }
     }
 

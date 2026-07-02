@@ -1,0 +1,16 @@
+{
+    "folders": [
+        {
+            "name": "linux",
+            "path": "linux"
+        },
+        {
+            "name": "stm32",
+            "path": "stm32"
+        },
+        {
+            "name": "lane_detection",
+            "path": "lane_detection"
+        }
+    ]
+}

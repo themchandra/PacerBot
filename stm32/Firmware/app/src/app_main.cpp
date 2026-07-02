@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date May-17-2026
+ * @date Jun-08-2026
  */
 
 #include "app/app_main.h"
@@ -23,6 +23,7 @@ extern "C" {
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+extern TIM_HandleTypeDef htim3;
 }
 
 // IMU I2C device address
@@ -42,7 +43,6 @@ extern "C" void app_main(void)
     // Create and start IMU task
     app::IMUTask imu_task(&hi2c1, IMU_ADDRESS);
     imu_task.start();
-
     // Create and start control loop
     app::ControlLoop control_loop(&htim3, imu_task, cmd_manager);
     control_loop.start();
