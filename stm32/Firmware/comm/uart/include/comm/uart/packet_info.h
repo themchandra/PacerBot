@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-15-2026
+ * @date Jul-02-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -34,6 +34,7 @@ namespace uart {
         STM32_DEBUG,   // Debugging log
 
         // Transmitting (Host -> STM32)
+        CMD_MCTL,         // Manual controls via keyboard
         CMD_TARGET_SPEED, // Target speed command (payload: float)
         TELEM_LINE_POS,   // Line position command (payload: float)
         HOST_STATUS,      // Status of the Host
@@ -56,6 +57,14 @@ namespace uart {
                                         // CRC8 at data[length]
 
         size_t totalSize() const { return HEADER_SIZE + length + CRC_SIZE; }
+    } __attribute__((packed));
+
+    /** @brief Manual control incoming data */
+    struct CMD_mctl {
+        bool isForward {};
+        bool isReverse {};
+        bool isLeft {};
+        bool isRight {};
     } __attribute__((packed));
 
 

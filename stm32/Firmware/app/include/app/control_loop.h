@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jun-19-2026
+ * @date Jul-02-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -29,9 +29,9 @@ namespace app {
         /**
          * @brief Construct a control loop and initialize output peripherals.
          * @param timer Timer handle used by both ESC and servo PWM outputs.
-         * @param gps GPS module used to fetch ground speed in m/s.
+         * @param huart_gps UART handle for GPS readings.
          */
-        ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps);
+        ControlLoop(TIM_HandleTypeDef *timer, UART_HandleTypeDef *huart_gps);
 
         /**
          * @brief Start the control loop task.
@@ -88,7 +88,7 @@ namespace app {
 
         hal::ESC esc_;
         hal::Servo servo_;
-        hal::GPS &gps_;
+        hal::GPS gps_;
 
         float measured_line_position_ {};
         float target_speed_mps_ {};

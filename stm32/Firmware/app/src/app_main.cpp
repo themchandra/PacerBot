@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Jun-19-2026
+ * @date Jul-02-2026
  */
 
 #include "app/app_main.h"
@@ -34,26 +34,19 @@ extern TIM_HandleTypeDef htim3;
 
 extern "C" void app_main(void)
 {
+    // Manual control toggle
+    constexpr bool MAN_CTL_MODE {true};
+
     // Peripherals & Hardware sensors
     uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
-    hal::GPS gps(&huart6);
-    uart::callbacks::set_gps(&gps);
 
     // App layer inits
-    app::ControlLoop control_loop(&htim3, gps);
+    app::ControlLoop control_loop(&htim3, &huart6);
     app::CMDManager cmd_manager(control_loop);
 
     // Start tasks loops
-    gps.start();
     uart::manager::start();
     cmd_manager.start();
-
-    // Wait for a 3D satellite fix before starting the control loop
-    hal::GPS::Data gps_data = gps.getData();
-    while (!gps_data.valid || gps_data.fix_qual < 3) {
-        osDelay(1000);
-        gps_data = gps.getData();
-    }
     control_loop.start();
 
     control_loop.set_target_speed(2.0f);

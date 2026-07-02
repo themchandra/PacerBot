@@ -2,10 +2,12 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date Jun-19-2026
+ * @date Jul-02-2026
  */
 
 #include "app/control_loop.h"
+
+#include "comm/uart/callbacks.h"
 
 #include <algorithm>
 #include <cmath>
@@ -13,9 +15,12 @@
 
 namespace app {
 
-    ControlLoop::ControlLoop(TIM_HandleTypeDef *timer, hal::GPS &gps) : gps_(gps)
+    ControlLoop::ControlLoop(TIM_HandleTypeDef *timer, UART_HandleTypeDef *huart_gps)
+        : gps_(huart_gps)
     {
         mutex_ = osMutexNew(nullptr);
+
+        uart::callbacks::set_gps(&gps_);
 
         esc_.init(timer);
         servo_.init(timer);
@@ -43,6 +48,7 @@ namespace app {
         if (taskHandle_ != nullptr) {
             return;
         }
+        gps_.start();
 
         isRunning_  = true;
         taskHandle_ = osThreadNew(threadTrampoline, this, &task_att_);
@@ -76,7 +82,7 @@ namespace app {
     void ControlLoop::set_target_speed(float speed_mps)
     {
         osMutexAcquire(mutex_, osWaitForever);
-         target_speed_mps_
+        target_speed_mps_
             = std::clamp(speed_mps, TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS);
         osMutexRelease(mutex_);
     }
@@ -99,6 +105,13 @@ namespace app {
 
     void ControlLoop::threadLoop()
     {
+        // Wait for a 3D satellite fix before starting the control loop
+        hal::GPS::Data gps_data = gps_.getData();
+        while (!gps_data.valid || gps_data.fix_qual < 3) {
+            osDelay(1000);
+            gps_data = gps_.getData();
+        }
+
         uint32_t prev_tick_ms {HAL_GetTick()};
 
         while (isRunning_) {
