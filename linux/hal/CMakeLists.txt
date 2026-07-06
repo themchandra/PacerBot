@@ -6,5 +6,9 @@ include_directories(hal/include)
 file(GLOB MY_SOURCES "src/*.cpp")		 # Collect .cpp files from src
 file(GLOB MOCK_SOURCES "src/mock/*.cpp") # Collect .cpp files from src/mock
 
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(REMOVE_ITEM MY_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/SerialUART.cpp")
+endif()
+
 add_library(hal STATIC ${MY_SOURCES} ${MOCK_SOURCES})
 target_include_directories(hal PUBLIC include)

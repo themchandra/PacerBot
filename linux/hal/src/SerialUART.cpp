@@ -2,7 +2,7 @@
  * @file SerialUART.cpp
  * @brief I/O for serial communication (UART) port.
  * @author Hayden Mai
- * @date May-01-2026
+ * @date Jul-06-2026
  *
  * @link
  * https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
@@ -11,7 +11,9 @@
 #include "hal/SerialUART.h"
 #include "hal/exception/SerialException.h"
 
+#ifdef __linux__
 #include <asm/termbits.h>
+#endif
 #include <cstring>
 #include <iostream>
 
@@ -127,8 +129,7 @@ void SerialUART::configurePort() const
 
     // Put the port into raw mode so binary packets are not held by the
     // kernel's line discipline waiting for line endings or other cooked input.
-    tio.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL
-                     | IXON);
+    tio.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
     tio.c_oflag &= ~OPOST;
     tio.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 
