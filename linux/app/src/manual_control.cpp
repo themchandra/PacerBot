@@ -1,16 +1,21 @@
 #include "manual_control.h"
 
+#include "comm/uart/packet_info.h"
 #include <cstdio>
 #include <termios.h>
 #include <unistd.h>
 
 
 namespace {
-    /*
-    //
-    //
-    https://stackoverflow.com/questions/421860/capture-characters-from-standard-input-without-waiting-for-enter-to-be-pressed
-    */
+    /**
+     * @brief Polls stdin for a single key press without blocking.
+     *
+     * Temporarily disables canonical input and echo so key presses can be read
+     * immediately without waiting for Enter. Returns '\0' if no key is available
+     * or if reading fails.
+     * Reference:
+     * https://stackoverflow.com/questions/421860/capture-characters-from-standard-input-without-waiting-for-enter-to-be-pressed
+     */
     char readKey()
     {
         // Store character read from the keyboard
@@ -100,22 +105,18 @@ void updateManualControl(ManualControl &control)
 
 uint8_t encodeManualControl(const ManualControl &control)
 {
-    uint8_t bitmask           = 0;
-    constexpr uint8_t forward = 1 << 3;
-    constexpr uint8_t reverse = 1 << 2;
-    constexpr uint8_t left    = 1 << 1;
-    constexpr uint8_t right   = 1 << 0;
+    uint8_t bitmask = 0;
 
     if (control.isForward) {
-        bitmask |= forward;
+        bitmask |= uart::CMD_MCTL_FORWARD;
     } else if (control.isReverse) {
-        bitmask |= reverse;
+        bitmask |= uart::CMD_MCTL_REVERSE;
     }
 
     if (control.isLeft) {
-        bitmask |= left;
+        bitmask |= uart::CMD_MCTL_LEFT;
     } else if (control.isRight) {
-        bitmask |= right;
+        bitmask |= uart::CMD_MCTL_RIGHT;
     }
     return bitmask;
 }
