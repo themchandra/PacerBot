@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-04-2026
+ * @date Jul-06-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -105,7 +105,7 @@ namespace uart {
         int16_t gyro_y {};
         int16_t gyro_z {};
     };
-
+    
 } // namespace uart
 
 #endif

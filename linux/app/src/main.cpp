@@ -1,11 +1,14 @@
 #include "hal/encoders.h"
 #include "hal/motors.h"
+#include "manual_control.h"
 #include "state_machine.h"
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <sys/types.h>
 #include <termios.h>
 #include <thread>
 #include <unistd.h>
@@ -16,44 +19,6 @@
 
 #include "timing.h"
 
-char getChar()
-{
-    // Store character read from the keyboard
-    char buf = 0;
-
-    // Save current terminal settings
-    termios old;
-    if (tcgetattr(STDIN_FILENO, &old) < 0) {
-        perror("tcgetattr()");
-        return '\0';
-    }
-
-    termios current = old;
-
-    // Turn off canonical mode (no enter needed)
-    // and echo mode (don't display typed characters)
-    current.c_lflag &= ~ICANON;
-    current.c_lflag &= ~ECHO;
-
-    // min characters to read
-    current.c_cc[VMIN] = 1;
-
-    // no timeout
-    current.c_cc[VTIME] = 0;
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &current) < 0) {
-        perror("tcsetattr ICANON");
-        return '\0';
-    }
-    // read character
-    if (read(STDIN_FILENO, &buf, 1) < 0) {
-        perror("read()");
-    }
-    // restore original terminal settings
-    if (tcsetattr(STDIN_FILENO, TCSADRAIN, &old) < 0)
-        perror("restore terminal");
-
-    return buf;
-}
 
 void test()
 {
@@ -86,11 +51,6 @@ void test()
  */
 int main()
 {
-    while (1) {
-
-        std::cout << getChar() << '\n';
-    }
-    return 0;
     /*
     uart::manager::init();
     uart::manager::start();
