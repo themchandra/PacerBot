@@ -2,7 +2,7 @@
  * @file cmd_manager.cpp
  * @brief Handles incoming packets from UART module
  * @author Hayden Mai
- * @date Jun-15-2026
+ * @date Jul-07-2026
  */
 
 #include "app/cmd_manager.h"
@@ -69,16 +69,23 @@ namespace app {
             return;
         }
 
-        float value {};
-        std::memcpy(&value, packet.data, sizeof(float));
+        if (packet.id == uart::ePacketID::CMD_TARGET_SPEED
+            || packet.id == uart::ePacketID::TELEM_LINE_POS) {
+            float value {};
+            std::memcpy(&value, packet.data, sizeof(value));
 
-        if (packet.id == uart::ePacketID::CMD_TARGET_SPEED) {
-            control_loop_.set_target_speed(value);
-            return;
+            if (packet.id == uart::ePacketID::CMD_TARGET_SPEED) {
+                control_loop_.set_target_speed(value);
+            } else {
+                control_loop_.set_measured_line_position(value);
+            }
         }
 
-        if (packet.id == uart::ePacketID::TELEM_LINE_POS) {
-            control_loop_.set_measured_line_position(value);
+        if (packet.id == uart::ePacketID::CMD_MCTL) {
+            uart::CMD_mctl mctl_data;
+            std::memcpy(&mctl_data, packet.data, sizeof(mctl_data));
+
+            control_loop_.set_manual_ctl(mctl_data);
         }
     }
 

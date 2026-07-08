@@ -12,8 +12,6 @@
 #include "comm/uart/callbacks.h"
 #include "comm/uart/manager.h"
 
-#include "hal/gps.h"
-
 #include "cmsis_os.h"
 #include "main.h"
 

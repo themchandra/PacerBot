@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jul-02-2026
+ * @date Jul-07-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -13,6 +13,8 @@
 #include "hal/esc.h"
 #include "hal/gps.h"
 #include "hal/servo.h"
+
+#include "comm/uart/manager.h"
 
 #include "cmsis_os.h"
 
@@ -61,6 +63,8 @@ namespace app {
          * @note Thread-safe; may be called from CMDManager task context.
          */
         void set_measured_line_position(float position);
+
+        void set_manual_ctl(uart::CMD_mctl mctl_data);
 
       private:
         static constexpr uint32_t CONTROL_PERIOD_MS {100};
