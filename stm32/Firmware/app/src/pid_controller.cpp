@@ -2,7 +2,7 @@
  * @file pid_controller.cpp
  * @brief PID controller implementation (float)
  * @author Hayden Mai
- * @date Jun-14-2026
+ * @date Jul-16-2026
  */
 
 #include "app/pid_controller.h"
@@ -15,15 +15,10 @@ namespace app {
     bool PIDController::isFinite(float value) { return std::isfinite(value); }
 
 
-    float PIDController::clampValue(float value, float minValue, float maxValue)
-    {
-        return std::clamp(value, minValue, maxValue);
-    }
-
     PIDController::PIDController(float kp, float ki, float kd)
     {
         set_gains(kp, ki, kd);
-        last_output_ = clampValue(0.0f, min_out_, max_out_);
+        last_output_ = std::clamp(0.0f, min_out_, max_out_);
     }
 
 
@@ -33,7 +28,7 @@ namespace app {
     {
         set_output_limits(min_out, max_out);
         set_integral_limits(min_integral, max_integral);
-        last_output_ = clampValue(last_output_, min_out_, max_out_);
+        last_output_ = std::clamp(last_output_, min_out_, max_out_);
     }
 
 
@@ -79,7 +74,7 @@ namespace app {
 
         min_out_     = min_out;
         max_out_     = max_out;
-        last_output_ = clampValue(last_output_, min_out_, max_out_);
+        last_output_ = std::clamp(last_output_, min_out_, max_out_);
         return true;
     }
 
@@ -99,7 +94,7 @@ namespace app {
 
         min_integral_ = min_integral;
         max_integral_ = max_integral;
-        integral_     = clampValue(integral_, min_integral_, max_integral_);
+        integral_     = std::clamp(integral_, min_integral_, max_integral_);
         return true;
     }
 
@@ -133,7 +128,7 @@ namespace app {
         derivative_           = 0.0f;
         prev_measurement_     = 0.0f;
         has_prev_measurement_ = false;
-        last_output_          = clampValue(0.0f, min_out_, max_out_);
+        last_output_          = std::clamp(0.0f, min_out_, max_out_);
     }
 
 
@@ -151,7 +146,7 @@ namespace app {
 
         // Integrate error: integral += error * dt
         // Clamp to configured integral limits to prevent windup
-        integral_ = clampValue(integral_ + (error * dt_s), min_integral_, max_integral_);
+        integral_ = std::clamp(integral_ + (error * dt_s), min_integral_, max_integral_);
 
         float rawDerivative = 0.0f;
         if (has_prev_measurement_) {
@@ -174,7 +169,7 @@ namespace app {
 
         // PID output = Kp*error + Ki*integral + Kd*derivative
         const float output = (Kp_ * error) + (Ki_ * integral_) + (Kd_ * derivative_);
-        last_output_       = clampValue(output, min_out_, max_out_);
+        last_output_       = std::clamp(output, min_out_, max_out_);
 
         prev_measurement_     = measurement;
         has_prev_measurement_ = true;

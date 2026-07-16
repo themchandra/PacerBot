@@ -51,19 +51,22 @@ namespace app {
 
         /**
          * @brief Update the commanded target speed used by the speed PID.
-    >     * @param speed_mps Target ground speed in m/s, clamped to
+         * @param speed_mps Target ground speed in m/s, clamped to
          *        [TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS].
-         * @note Thread-safe; may be called from CMDManager task context.
          */
         void set_target_speed(float speed_mps);
 
         /**
          * @brief Update the measured line position used by the line PID.
          * @param position Normalized line position from telemetry.
-         * @note Thread-safe; may be called from CMDManager task context.
          */
         void set_measured_line_position(float position);
 
+        /**
+         * @brief Apply a manual-control bitfield to speed and steering setpoints.
+         * @param mctl_data Bitmask of `uart::CMD_MCTL_*` flags; unset bits (or 0)
+         *        return that axis to neutral.
+         */
         void set_manual_ctl(uint8_t mctl_data);
 
       private:
