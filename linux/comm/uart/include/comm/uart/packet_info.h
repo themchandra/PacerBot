@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Jul-07-2026
+ * @date Jul-16-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -44,15 +44,12 @@ namespace uart {
         STM32_DEBUG,   // Debugging log
 
         // Transmitting (Host -> STM32)
-        CMD_MOTOR,      // Motor control
-        CMD_NAV,        // Target speed, turn, start/stop
-        CONF_PID_SPEED, // Tune speed PID
-        CONF_PID_LANE,  // Tune laning PID
-        CONF_SENSOR,    // Configure sensor data rate
-        HOST_STATUS,    // Status of the Host
-        HOST_ACK,       // Confirm receipt from Host
-        HOST_DEBUG,     // Debugging log from Host
-        CMD_MCTL,       // Manual Control
+        CMD_MCTL,         // Manual Control
+        CMD_TARGET_SPEED, // Target speed command (payload: float)
+        TELEM_LINE_POS,   // Line position command (payload: float)
+        HOST_STATUS,      // Status of the Host
+        HOST_ACK,         // Confirm receipt from Host
+        HOST_DEBUG,       // Debugging log from Host
 
         TOTAL,
     };
