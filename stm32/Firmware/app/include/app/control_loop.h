@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jul-07-2026
+ * @date Jul-16-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -51,7 +51,7 @@ namespace app {
 
         /**
          * @brief Update the commanded target speed used by the speed PID.
-         * @param speed_mps Target ground speed in m/s, clamped to
+    >     * @param speed_mps Target ground speed in m/s, clamped to
          *        [TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS].
          * @note Thread-safe; may be called from CMDManager task context.
          */
@@ -64,7 +64,7 @@ namespace app {
          */
         void set_measured_line_position(float position);
 
-        void set_manual_ctl(uart::CMD_mctl mctl_data);
+        void set_manual_ctl(uint8_t mctl_data);
 
       private:
         static constexpr uint32_t CONTROL_PERIOD_MS {100};

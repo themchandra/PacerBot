@@ -2,7 +2,7 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date Jul-02-2026
+ * @date Jul-16-2026
  */
 
 #include "app/control_loop.h"
@@ -92,6 +92,35 @@ namespace app {
     {
         osMutexAcquire(mutex_, osWaitForever);
         measured_line_position_ = position;
+        osMutexRelease(mutex_);
+    }
+
+
+    void ControlLoop::set_manual_ctl(uint8_t mctl_data)
+    {
+        const uint8_t speed_mask
+            = mctl_data & (uart::CMD_MCTL_FORWARD | uart::CMD_MCTL_REVERSE);
+        const uint8_t direction_mask
+            = mctl_data & (uart::CMD_MCTL_LEFT | uart::CMD_MCTL_RIGHT);
+
+        float target_speed {0.0f};
+        if (speed_mask == uart::CMD_MCTL_FORWARD) {
+            target_speed = 5.0f;
+        } else if (speed_mask == uart::CMD_MCTL_REVERSE) {
+            target_speed = -5.0f;
+        }
+
+        float line_position {TARGET_POSITION};
+        if (direction_mask == uart::CMD_MCTL_LEFT) {
+            line_position = -0.5f;
+        } else if (direction_mask == uart::CMD_MCTL_RIGHT) {
+            line_position = 0.5f;
+        }
+
+        osMutexAcquire(mutex_, osWaitForever);
+        target_speed_mps_
+            = std::clamp(target_speed, TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS);
+        measured_line_position_ = line_position;
         osMutexRelease(mutex_);
     }
 

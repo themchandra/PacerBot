@@ -2,7 +2,7 @@
  * @file app_main.cpp
  * @brief Initialize modules needed. Should be called from Core/main.c
  * @author Hayden Mai
- * @date Jul-02-2026
+ * @date Jul-16-2026
  */
 
 #include "app/app_main.h"
@@ -32,9 +32,6 @@ extern TIM_HandleTypeDef htim3;
 
 extern "C" void app_main(void)
 {
-    // Manual control toggle
-    constexpr bool MAN_CTL_MODE {true};
-
     // Peripherals & Hardware sensors
     uart::manager::init(&huart1, uart::manager::eUARTInstance::UART_1);
 

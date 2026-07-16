@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date Jul-02-2026
+ * @date Jul-16-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -20,6 +20,11 @@ namespace uart {
     constexpr uint8_t SYNC_RECV {0xA5};
     constexpr uint8_t SYNC_SEND {0x5A};
 
+    // Manual control masks
+    constexpr uint8_t CMD_MCTL_FORWARD {1 << 3};
+    constexpr uint8_t CMD_MCTL_REVERSE {1 << 2};
+    constexpr uint8_t CMD_MCTL_LEFT {1 << 1};
+    constexpr uint8_t CMD_MCTL_RIGHT {1 << 0};
 
     /** @brief List of IDs to/from the mcu */
     enum class ePacketID : uint8_t {
@@ -58,15 +63,6 @@ namespace uart {
 
         size_t totalSize() const { return HEADER_SIZE + length + CRC_SIZE; }
     } __attribute__((packed));
-
-    /** @brief Manual control incoming data */
-    struct CMD_mctl {
-        bool isForward {};
-        bool isReverse {};
-        bool isLeft {};
-        bool isRight {};
-    } __attribute__((packed));
-
 
     /** @brief Calculate CRC8 checksum. */
     uint8_t calculate_crc8(const uint8_t *data, uint16_t length, uint8_t crc = 0x00);
