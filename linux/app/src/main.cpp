@@ -1,51 +1,31 @@
-#include "comm/uart/packet_info.h"
-#include "hal/encoders.h"
-#include "hal/motors.h"
-#include "manual_control.h"
-#include "state_machine.h"
-#include <chrono>
+#include "comm/uart/manager.h"
+
+#include <array>
 #include <cstdint>
 #include <iostream>
-#include <ostream>
-#include <sys/types.h>
-#include <termios.h>
-#include <thread>
-#include <unistd.h>
-
-#ifdef PACERBOT_HAS_UART
-#include "comm/uart/manager.h"
-#endif
-
-#include "timing.h"
-
 
 /**
- * Test for manual control 
+ * Minimal UART test matching the STM32 app_main:
+ * send a HOST_DEBUG packet and wait for its STM32_ACK.
  */
 int main()
 {
-#ifdef PACERBOT_HAS_UART
+
     uart::manager::init();
+    auto ack = uart::recv::subscribe({uart::ePacketID::STM32_ACK});
     uart::manager::start();
 
-    timing::init();
+    constexpr std::array<uint8_t, 16> message {
+        'H', 'e', 'l', 'l', 'o', ' ', 'f', 'r', 'o', 'm', ' ', 'L', 'i', 'n', 'u', 'x'
+    };
+    uart::send::enqueue(
+        uart::DataPacket(uart::ePacketID::HOST_DEBUG, message));
 
-    ManualControl control;
-    std::cout << "Test thread!\n";
+    ack->pop();
+    std::cout << "Received ACK from STM32\n";
 
-    while (uart::manager::isRunning() == uart::manager::eRunStatus::RUNNING) {
-        updateManualControl(control);
-        uint8_t command = encodeManualControl(control);
-
-        // SENDING
-        auto packet = uart::DataPacket(uart::ePacketID::CMD_MCTL,
-                                       std::span<const uint8_t>(&command, 1));
-        uart::send::enqueue(std::move(packet));
-        timing::sleepForMs(100);
-    }
-    timing::deinit();
+    uart::manager::stop();
     uart::manager::deinit();
-#endif
-    return 0;
 
+    return 0;
 }
