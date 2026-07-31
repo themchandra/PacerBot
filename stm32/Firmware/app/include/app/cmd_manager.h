@@ -2,7 +2,7 @@
  * @file cmd_manager.h
  * @brief Handles incoming packets from UART module
  * @author Hayden Mai
- * @date Jun-15-2026
+ * @date Jul-30-2026
  */
 
 #ifndef APP_CMD_MANAGER_H_
@@ -45,7 +45,7 @@ namespace app {
         void stop();
 
       private:
-        static constexpr std::uint32_t STACK_SIZE_BYTES {512};
+        static constexpr std::uint32_t STACK_SIZE_BYTES {1024};
         static constexpr osThreadAttr_t task_att_ {
             .name       = "CMDManagerTask",
             .attr_bits  = 0,

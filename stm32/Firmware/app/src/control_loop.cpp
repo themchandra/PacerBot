@@ -2,15 +2,17 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date Jul-16-2026
+ * @date Jul-30-2026
  */
 
 #include "app/control_loop.h"
 
 #include "comm/uart/callbacks.h"
+#include "comm/uart/packet_info.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <stdint.h>
 
 namespace app {
@@ -96,32 +98,37 @@ namespace app {
     }
 
 
+    void ControlLoop::set_esc_pulse_us(uint16_t pulse_us)
+    {
+        esc_.set_pulse_us(pulse_us);
+    }
+
+
     void ControlLoop::set_manual_ctl(uint8_t mctl_data)
     {
         const uint8_t speed_mask
             = mctl_data & (uart::CMD_MCTL_FORWARD | uart::CMD_MCTL_REVERSE);
         const uint8_t direction_mask
             = mctl_data & (uart::CMD_MCTL_LEFT | uart::CMD_MCTL_RIGHT);
+        
+        uint16_t esc_pulse_us = hal::ESC::NEUTRAL_US;
 
-        float target_speed {0.0f};
         if (speed_mask == uart::CMD_MCTL_FORWARD) {
-            target_speed = 5.0f;
+             esc_pulse_us = 1575;
+
         } else if (speed_mask == uart::CMD_MCTL_REVERSE) {
-            target_speed = -5.0f;
+            esc_pulse_us = 1400;
         }
+        uint16_t servo_pulse_us = 1500;
 
-        float line_position {TARGET_POSITION};
         if (direction_mask == uart::CMD_MCTL_LEFT) {
-            line_position = -0.5f;
+            servo_pulse_us = 1400;
         } else if (direction_mask == uart::CMD_MCTL_RIGHT) {
-            line_position = 0.5f;
+            servo_pulse_us = 1700;
         }
 
-        osMutexAcquire(mutex_, osWaitForever);
-        target_speed_mps_
-            = std::clamp(target_speed, TARGET_SPEED_MIN_MPS, TARGET_SPEED_MAX_MPS);
-        measured_line_position_ = line_position;
-        osMutexRelease(mutex_);
+        esc_.set_pulse_us(esc_pulse_us);
+        servo_.set_pulse_us(servo_pulse_us);
     }
 
 
@@ -204,5 +211,6 @@ namespace app {
                           + (normalized * (center_us - static_cast<float>(min_us)));
         return static_cast<uint16_t>(std::lround(pulse));
     }
+
 
 } // namespace app

@@ -2,7 +2,7 @@
  * @file recv.cpp
  * @brief Handles incoming packets from UART
  * @author Hayden Mai
- * @date Jul-02-2026
+ * @date Jul-30-2026
  */
 
 #include "comm/uart/recv.h"
@@ -273,7 +273,6 @@ namespace {
             // Blocks until updateBufInd() is called
             const uint32_t flags
                 = osThreadFlagsWait(FLAGS_VALUE, osFlagsWaitAny, FLAG_TIMEOUT_MS);
-
             // If timed out, update DMA position via polling
             if (flags != FLAGS_VALUE) {
                 dmaIdx_ = RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx);

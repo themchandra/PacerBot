@@ -2,7 +2,7 @@
  * @file control_loop.h
  * @brief Control loop that obtains new data & drives PIDController.
  * @author Hayden Mai
- * @date Jul-16-2026
+ * @date Jul-31-2026
  */
 
 #ifndef APP_CTRL_LOOP_H_
@@ -13,10 +13,6 @@
 #include "hal/esc.h"
 #include "hal/gps.h"
 #include "hal/servo.h"
-
-#include "comm/uart/manager.h"
-
-#include "cmsis_os.h"
 
 namespace app {
     /**
@@ -61,6 +57,12 @@ namespace app {
          * @param position Normalized line position from telemetry.
          */
         void set_measured_line_position(float position);
+
+        /**
+         * @brief Temporary direct ESC pulse helper for isolated hardware testing.
+         * @param pulse_us ESC pulse width in microseconds.
+         */
+        void set_esc_pulse_us(uint16_t pulse_us);
 
         /**
          * @brief Apply a manual-control bitfield to speed and steering setpoints.

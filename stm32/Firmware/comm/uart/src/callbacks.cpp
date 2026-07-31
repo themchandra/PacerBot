@@ -2,13 +2,14 @@
  * @file callbacks.cpp
  * @brief Handle UART Callbacks & Interrupts
  * @author Hayden Mai
- * @date Jun-13-2026
+ * @date Jul-30-2026
  */
 
 #include "comm/uart/callbacks.h"
 #include "comm/uart/recv.h"
 #include "comm/uart/send.h"
 #include "hal/gps.h"
+#include <cstdio>
 
 namespace {
     // TODO: If this does grow, put into an array
