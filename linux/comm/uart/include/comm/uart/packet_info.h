@@ -2,7 +2,7 @@
  * @file packet_info.h
  * @brief Contains relevant information about UART data packets
  * @author Hayden Mai
- * @date May-04-2026
+ * @date Jul-16-2026
  */
 
 #ifndef COMM_UART_PACKET_INFO_H_
@@ -25,6 +25,12 @@ namespace uart {
     constexpr size_t HEADER_SIZE {3}; // sync + id + length
     constexpr size_t CRC_SIZE {1};    // CRC8 checksum
 
+    // Manual control masks
+    constexpr uint8_t CMD_MCTL_FORWARD {1 << 3};
+    constexpr uint8_t CMD_MCTL_REVERSE {1 << 2};
+    constexpr uint8_t CMD_MCTL_LEFT {1 << 1};
+    constexpr uint8_t CMD_MCTL_RIGHT {1 << 0};
+
     /** @brief List of IDs to/from the mcu */
     enum class ePacketID : uint8_t {
         // Receiving (STM32 -> Host)
@@ -38,14 +44,12 @@ namespace uart {
         STM32_DEBUG,   // Debugging log
 
         // Transmitting (Host -> STM32)
-        CMD_MOTOR,      // Motor control
-        CMD_NAV,        // Target speed, turn, start/stop
-        CONF_PID_SPEED, // Tune speed PID
-        CONF_PID_LANE,  // Tune laning PID
-        CONF_SENSOR,    // Configure sensor data rate
-        HOST_STATUS,    // Status of the Host
-        HOST_ACK,       // Confirm receipt from Host
-        HOST_DEBUG,     // Debugging log from Host
+        CMD_MCTL,         // Manual Control
+        CMD_TARGET_SPEED, // Target speed command (payload: float)
+        TELEM_LINE_POS,   // Line position command (payload: float)
+        HOST_STATUS,      // Status of the Host
+        HOST_ACK,         // Confirm receipt from Host
+        HOST_DEBUG,       // Debugging log from Host
 
         TOTAL,
     };

@@ -13,5 +13,7 @@ add_compile_options(-Wall -Werror -Wpedantic -Wextra)
 
 # Folders to build
 add_subdirectory(hal)
-add_subdirectory(comm)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(comm)
+endif()
 add_subdirectory(app)
