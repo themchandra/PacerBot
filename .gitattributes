@@ -1,0 +1,5 @@
+# Exclude STM32 CubeMX-generated code from GitHub language stats
+stm32/Core/** linguist-generated=true
+stm32/Drivers/** linguist-generated=true
+stm32/Middlewares/Third_Party/** linguist-generated=true
+stm32/startup_stm32f411xe.s linguist-generated=true
