@@ -1,7 +1,10 @@
 #!/bin/bash
-# Quick startup script for PacerBot API
 
 set -e
+
+# Quick startup script for PacerBot API
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Colors for output
 GREEN='\033[0;32m'

@@ -1,25 +1,42 @@
 # PacerBot Control API
 
-Minimal FastAPI backend for testing control flow from a future frontend.
+Minimal FastAPI backend that exposes an HTTP API for the PacerBot frontend. The API forwards control requests to the Linux RobotController service over a Unix Domain Socket using a lightweight JSON-RPC protocol.
+
+The FastAPI service is intentionally thin. It validates HTTP requests, forwards RPC commands to the RobotController, and returns responses to the frontend. Robot state, control logic, and hardware communication are owned by the RobotController service.
 
 ## Files
 
-- `main.py` - defines the app and routes directly
-- `models.py` - request and response models only
-- `bridge.py` - simple in-memory mock bridge
-- `run_api.sh` - convenience script to start the server
+- main.py - FastAPI application and HTTP routes
+- controller_client.py - Unix Domain Socket JSON-RPC client
+- models.py - Pydantic request and response models
+- run_api.sh - Convenience script to start the server
+
+## Architecture
+
+```text
+React Frontend
+        │ HTTP
+        ▼
+FastAPI API
+        │
+        ▼
+controller_client.py
+        │ Unix Domain Socket (JSON-RPC)
+        ▼
+RobotController (C++)
+        │ UART
+        ▼
+STM32
+```
 
 ## Endpoints
 
-- `GET /health` - check whether the mock bridge is connected and running
-- `POST /api/pace/set` - set the target pace
-  ```json
-  {"pace_kmh": 12.5}
-  ```
-- `POST /api/control/start` - start the mock cart
-- `POST /api/control/stop` - stop the mock cart
-- `POST /api/control/estop` - emergency stop
-- `GET /api/telemetry` - return a single telemetry snapshot
+- GET /health - Check communication with the RobotController
+- POST /api/pace/set - Update the robot target pace
+- POST /api/control/start - Start the robot
+- POST /api/control/stop - Stop the robot
+- POST /api/control/estop - Trigger an emergency stop
+- GET /api/telemetry - Retrieve the latest telemetry
 
 ## Run
 

@@ -3,12 +3,15 @@ import { useState, useEffect } from 'react'
 const API_BASE = 'http://localhost:8000'
 
 export default function App() {
-  const [pace, setPace] = useState(12.0)
+  // ---------------------- State ----------------------
+  // Local UI state for pace, telemetry, status, and timing.
+  const [pace, setPace] = useState("6:00")
   const [telemetry, setTelemetry] = useState(null)
   const [status, setStatus] = useState('idle')
   const [startTime, setStartTime] = useState(null)
 
-  // Poll telemetry every 500ms
+  // ---------------------- Telemetry Polling ----------------------
+  // Poll `/api/telemetry` at a regular interval (ms defined below).
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -28,12 +31,69 @@ export default function App() {
     return () => clearInterval(interval)
   }, [startTime])
 
+  // ---------------------- Pace Conversion ----------------------
+  // Convert pace string "mm:ss" into km/h for the API.
+  const paceToKmh = (paceString) => {
+    const parts = paceString.split(':')
+
+    if (parts.length !== 2) {
+      throw new Error('Pace must be in mm:ss format')
+    }
+
+    const minutes = Number(parts[0])
+    const seconds = Number(parts[1])
+
+    if (
+      !Number.isFinite(minutes) ||
+      !Number.isFinite(seconds) ||
+      minutes <= 0 ||
+      seconds < 0 ||
+      seconds >= 60
+    ) {
+      throw new Error('Invalid pace')
+    }
+
+    const minutesPerKm = minutes + seconds / 60
+    return 60 / minutesPerKm
+  }
+
+  // ---------------------- Pace Formatting ----------------------
+  // Convert a speed in km/h into a pace string formatted as "m:ss".
+  const kmhToPaceString = (kmh) => {
+    if (!Number.isFinite(kmh) || kmh <= 0) return '--:--'
+    // minutes per km
+    const minutesPerKm = 60 / kmh
+    const totalSeconds = Math.round(minutesPerKm * 60)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes}:${String(seconds).padStart(2, '0')}`
+  }
+
+  // ---------------------- Pacing Status ----------------------
+  // Compare current and target speeds (km/h) and return a human-readable status.
+  const pacingStatus = (currentKmh, targetKmh) => {
+    if (!Number.isFinite(currentKmh) || currentKmh <= 0) return 'No pace data'
+    if (!Number.isFinite(targetKmh) || targetKmh <= 0) return 'No target pace'
+
+    const currSecPerKm = 3600 / currentKmh
+    const targetSecPerKm = 3600 / targetKmh
+    const diff = Math.round(currSecPerKm - targetSecPerKm)
+
+    if (Math.abs(diff) <= 1) return 'On pace'
+    if (diff > 0) return `${diff} sec/km behind target`
+    return `${Math.abs(diff)} sec/km ahead of target`
+  }
+
+  // ---------------------- Set Pace Handler ----------------------
+  // Send the converted target pace to the backend API.
   const setPaceHandler = async () => {
     try {
+      const paceKmh = paceToKmh(pace)
+
       const res = await fetch(`${API_BASE}/api/pace/set`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pace_kmh: parseFloat(pace) })
+        body: JSON.stringify({ pace_kmh: paceKmh })
       })
       if (res.ok) {
         setStatus('Pace updated')
@@ -45,6 +105,8 @@ export default function App() {
     }
   }
 
+  // ----------------------- Start Handler -----------------------
+  // Send a start command to the backend API.
   const startHandler = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/control/start`, { method: 'POST' })
@@ -55,6 +117,8 @@ export default function App() {
     }
   }
 
+  // ----------------------- Stop Handler ------------------------
+  // Send a stop command to the backend API.
   const stopHandler = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/control/stop`, { method: 'POST' })
@@ -65,6 +129,8 @@ export default function App() {
     }
   }
 
+  // ----------------------- E-Stop Handler ----------------------
+  // Send an emergency-stop command to the backend API.
   const estopHandler = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/control/estop`, { method: 'POST' })
@@ -75,6 +141,7 @@ export default function App() {
     }
   }
 
+  // ---------------------- Render ----------------------
   return (
     <div className="app">
       <header>
@@ -84,14 +151,12 @@ export default function App() {
 
       <section className="controls">
         <div className="pace-control">
-          <label>Target Pace (km/h)</label>
+          <label>Target Pace (min/km)</label>
           <input
-            type="number"
+            type="text"
             value={pace}
             onChange={(e) => setPace(e.target.value)}
-            step="0.5"
-            min="5"
-            max="30"
+            placeholder="6:00"
           />
           <button onClick={setPaceHandler}>Set Pace</button>
         </div>
@@ -112,16 +177,16 @@ export default function App() {
               <strong>{telemetry.state}</strong>
             </div>
             <div className="data-row">
-              <span>Current Speed:</span>
-              <strong>{telemetry.current_speed.toFixed(2)} km/h</strong>
+              <span>Current Pace:</span>
+              <strong>{kmhToPaceString(telemetry.current_speed)} /km</strong>
             </div>
             <div className="data-row">
-              <span>Target Speed:</span>
-              <strong>{telemetry.target_speed.toFixed(2)} km/h</strong>
+              <span>Target Pace:</span>
+              <strong>{kmhToPaceString(telemetry.target_speed)} /km</strong>
             </div>
             <div className="data-row">
-              <span>Speed Error:</span>
-              <strong>{telemetry.speed_error.toFixed(2)} km/h</strong>
+              <span>Status:</span>
+              <strong>{pacingStatus(telemetry.current_speed, telemetry.target_speed)}</strong>
             </div>
             <div className="data-row">
               <span>Time:</span>
