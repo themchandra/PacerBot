@@ -3,7 +3,7 @@
 <table align="center" cellpadding="8" cellspacing="0" style="width: 100%;">
   <tr>
     <td align="center"><img src="docs/images/pacerbot_img_sep1.jpg" alt="PacerBot overview" width="100%" /></td>
-    <td align="center"><img src="docs/images/IMG_2013.jpg" alt="PacerBot front view" width="100%" /></td>
+    <td align="center"><img src="docs/images/IMG_2013.JPG" alt="PacerBot front view" width="100%" /></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/images/IMG_0824.jpg" alt="PacerBot build photo 1" width="100%" /></td>
