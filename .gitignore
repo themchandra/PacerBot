@@ -5,17 +5,22 @@
 Backup/
 
 # VSCode
-.vscode
+.vscode/
 
 # Build outputs
 build/
 Debug/
 
-# OS Specific folders
+# OS
 .DS_Store
 
-# Python virtual environments
+# Python
 web/api/venv/
-.venv
-venv
+.venv/
+venv/
 __pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+dist/
