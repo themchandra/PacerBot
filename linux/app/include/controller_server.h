@@ -14,7 +14,7 @@ class ControllerServer {
 public:
     bool start();
     void run();
-    bool stop();
+    void stop();
 
 private:
     /**
@@ -28,7 +28,8 @@ private:
     void closeSocket();
 
     /// File descriptor for the listening Unix domain socket.
-    int server_fd_;
+    int server_fd_ = -1;
+    const char* socket_path_ = "/tmp/pacerbot-controller.sock";
 };
 
 #endif
