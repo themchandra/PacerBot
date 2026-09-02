@@ -2,7 +2,7 @@
  * @file control_loop.cpp
  * @brief Control loop that drives PIDController.
  * @author Hayden Mai
- * @date Aug-26-2026
+ * @date Sep-01-2026
  */
 
 #include "app/control_loop.h"
@@ -114,10 +114,10 @@ namespace app {
         uint16_t esc_pulse_us = hal::ESC::NEUTRAL_US;
 
         if (speed_mask == uart::CMD_MCTL_FORWARD) {
-             esc_pulse_us = 1575;
+             esc_pulse_us = 1600;
 
         } else if (speed_mask == uart::CMD_MCTL_REVERSE) {
-            esc_pulse_us = 1400;
+            esc_pulse_us = 1450;
         }
         uint16_t servo_pulse_us = 1500;
 
