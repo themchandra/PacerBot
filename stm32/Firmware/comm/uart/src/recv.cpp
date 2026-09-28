@@ -49,7 +49,7 @@ namespace {
         .cb_size    = 0,
         .stack_mem  = nullptr,
         .stack_size = STACK_SIZE_BYTES,
-        .priority   = osPriorityNormal,
+        .priority   = osPriorityAboveNormal,
         .tz_module  = 0,
         .reserved   = 0,
     };

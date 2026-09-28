@@ -44,7 +44,7 @@ namespace {
         .cb_size    = sizeof(task_cb_),
         .stack_mem  = task_stack_mem_,
         .stack_size = sizeof(task_stack_mem_),
-        .priority   = osPriorityNormal,
+        .priority   = osPriorityBelowNormal,
         .tz_module  = 0,
         .reserved   = 0,
     };
