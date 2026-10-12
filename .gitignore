@@ -13,3 +13,9 @@ Debug/
 
 # OS Specific folders
 .DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.DS_Store
