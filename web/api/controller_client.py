@@ -14,6 +14,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import random
+import time
 from typing import Any
 
 class RobotControllerClientError(Exception):
@@ -156,3 +158,57 @@ class RobotControllerClient:
 
     async def get_health(self) -> dict[str, Any]:
         return await self._call("health")
+
+
+class MockRobotControllerClient:
+    """
+    Mock IPC client for local development without robot hardware.
+
+    Activated when USE_MOCK_TELEMETRY=true in the environment.
+    Returns plausible fake data so the frontend can be developed and
+    tested without a live RobotController.
+    """
+
+    def __init__(self) -> None:
+        self._running = False
+        self._pace_kmh = 10.0
+        self._start_time = time.time()
+
+    async def set_pace(self, pace_kmh: float) -> dict[str, Any]:
+        self._pace_kmh = pace_kmh
+        return {}
+
+    async def start(self) -> dict[str, Any]:
+        self._running = True
+        return {}
+
+    async def stop(self) -> dict[str, Any]:
+        self._running = False
+        return {}
+
+    async def estop(self) -> dict[str, Any]:
+        self._running = False
+        return {}
+
+    async def get_telemetry(self) -> dict[str, Any]:
+        # Simulate gentle sensor noise around the target pace
+        noise = random.uniform(-0.3, 0.3)
+        current_speed = round((self._pace_kmh + noise) if self._running else 0.0, 2)
+        speed_error = round(current_speed - self._pace_kmh, 2) if self._running else 0.0
+        return {
+            "timestamp_ms": int(time.time() * 1000),
+            "current_speed": current_speed,
+            "target_speed": self._pace_kmh,
+            "speed_error": speed_error,
+            "state": "running" if self._running else "idle",
+        }
+
+    async def get_health(self) -> dict[str, Any]:
+        return {"status": "mock", "controller": "MockRobotControllerClient"}
+
+
+def make_controller() -> RobotControllerClient | MockRobotControllerClient:
+    """Return a mock client when USE_MOCK_TELEMETRY is enabled, otherwise real."""
+    if os.getenv("USE_MOCK_TELEMETRY", "false").lower() == "true":
+        return MockRobotControllerClient()
+    return RobotControllerClient()

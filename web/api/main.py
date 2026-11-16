@@ -17,16 +17,16 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from controller_client import RobotControllerClient
+from controller_client import make_controller
 from controller_client import RobotControllerClientError
 from models import APIResponse, PaceRequest, TelemetryResponse
 
 load_dotenv()
 
 # Single IPC client shared by all API routes.
-# Communication with the RobotController is performed over a
-# Unix Domain Socket using a lightweight JSON-RPC protocol.
-controller = RobotControllerClient()
+# Uses MockRobotControllerClient when USE_MOCK_TELEMETRY=true (local dev),
+# otherwise communicates with the RobotController over a Unix Domain Socket.
+controller = make_controller()
 
 
 # Perform a startup health check to verify that the RobotController
